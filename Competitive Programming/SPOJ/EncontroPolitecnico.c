@@ -9,10 +9,8 @@ void oeste(int *x, int *y);
 int main(){
 
     void (*escolhe[])(int *x, int *y) = { norte, sul, leste, oeste};
-    int n,m,i,bolean=0;
-    scanf("%d %d", &n, &m);
-    int loop;
-    scanf("%d", &loop);
+    int n,m,i,choose=0,loop;
+    scanf("%d %d %d", &n, &m, &loop);
     int x1=1,y1=1,x2=n,y2=m;
     
     for(i = 1; i<=loop; i++){
@@ -22,25 +20,21 @@ int main(){
         escolhe[d1-1](&x1, &y1);
         escolhe[d2-1](&x2, &y2);
 
-        if((x1<1 || y1>m) && bolean != -1){
+        if((x1<1 || y1>m || y1<1 || x1>n) && choose == 0){
             printf("PA saiu na posicao (%d,%d) no passo %d\n", x1, y1, i);
-            bolean = -1;
+            choose = -1;
         }
-        else if(x1 == x2 && y1 == y2 && bolean != -1) {
+        if((x2<1 || y2>m || y2<1 || x2>n) && choose == 0){
+            printf("PB saiu na posicao (%d,%d) no passo %d\n", x2, y2, i);
+            choose = -1;
+        }
+        if(x1 == x2 && y1 == y2 && choose == 0) {
             printf("Encontraram-se na posicao (%d,%d) no passo %d\n", x1, y1, i);
-            bolean = -1;
-        }
-        else if((x1<1 || y2>m) && bolean != -1){
-            bolean = i;
+            choose = -1;
         }
     }
-    
-    if(bolean == -1) return 0;
-    else if(bolean){
-        printf("PB saiu na posicao (%d,%d) no passo %d\n", x2, y2, bolean);
-        return 0;
-    }
-    else printf("Nao se encontraram\n");
+
+    if(choose==0) printf("Nao se encontraram\n");
 
     return 0;
 }
