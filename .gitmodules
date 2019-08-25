@@ -1,0 +1,6 @@
+[submodule "App_Gasolina_ou_Alcool"]
+	path = App_Gasolina_ou_Alcool
+	url = https://github.com/SergioAlmeidaCiprianoJr/App_Gasolina_ou_Alcool
+[submodule "Estrutura_de_Dados"]
+	path = Estrutura_de_Dados
+	url = https://github.com/SergioAlmeidaCiprianoJr/Estrutura_de_Dados_1
