@@ -63,7 +63,7 @@
         jal imprime_quebra_linha
 
         #deslocamento de bits
-        la $a0, msgSLL1
+        la $a0, msgSLL
         jal imprime_string
         add $a0, $a1, $zero
         jal imprime_inteiro	
@@ -74,7 +74,7 @@
         jal imprime_inteiro	
         jal imprime_quebra_linha
 
-        la $a0, msgSRL1
+        la $a0, msgSRL
         jal imprime_string
         add $a0, $a1, $zero
         jal imprime_inteiro	
@@ -100,12 +100,12 @@
     imprime_quebra_linha:
         la $a0, newline
         li $v0, 4
-        syscall
+        syscall		# executa a chamado do SO para imprimir
         jr $ra
 
     imprime_string:
         li $v0, 4
-        syscall
+        syscall		# executa a chamado do SO para imprimir
         jr $ra
     	
 	fim:
@@ -128,9 +128,9 @@
         .asciiz "XOR: "
     msgMASK:
         .asciiz "MASK: "    
-    msgSLL1:
+    msgSLL:
         .asciiz "SLL(" 
-    msgSRL1:
+    msgSRL:
         .asciiz "SRL(" 
     msgClose:
         .asciiz "): " 
