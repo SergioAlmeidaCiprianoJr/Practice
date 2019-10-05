@@ -7,14 +7,11 @@
     
     jal le_inteiro 
 	add $t0, $v0, $zero
-    add $a0, $zero, $zero
+    add $a0, $zero, $t0
 
-    loop:
-        jal le_inteiro
-        add $a0, $v0, $a0
-        addi $t3, $zero, 1
-        sub $t0, $t0, $t3
-        bne $t0, $zero, loop
+    jal le_inteiro 
+	add $t0, $v0, $zero
+    sub $a0, $a0, $t0
 
     resposta:
         li $v0, 1	
