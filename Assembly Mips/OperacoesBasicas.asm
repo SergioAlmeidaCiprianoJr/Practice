@@ -7,12 +7,12 @@
 	main:
 
         #lendo e armazenando em temporários
-		jal le_inteiro 
-		la  $t0, 0($v0) #a
+	jal le_inteiro 
+	la  $t0, 0($v0) #a
         jal le_inteiro 
-		la  $t1, 0($v0) #b
+	la  $t1, 0($v0) #b
         jal le_inteiro 
-		la  $t2, 0($v0)	#c
+	la  $t2, 0($v0)	#c
         #...................................
 
         la $a0, msgADD
@@ -75,7 +75,7 @@
         jal imprime_inteiro	
         jal imprime_quebra_linha
         
-		j   fim
+	j   fim
 
 	le_inteiro:
 		li $v0, 5	
@@ -87,17 +87,17 @@
 		syscall		# executa a chamado do SO para imprimir
 		jr $ra	      
 
-    imprime_quebra_linha:
-        la $a0, newline
-        li $v0, 4
-        syscall
-        jr $ra
+	imprime_quebra_linha:
+		la $a0, newline
+		li $v0, 4
+		syscall
+		jr $ra
 
-    imprime_string:
-        li $v0, 4
-        syscall
-        jr $ra
-    	
+	imprime_string:
+		li $v0, 4
+		syscall
+		jr $ra
+	    	
 	fim:
 		li $v0, 10
 		syscall		# executa a chamada do SO para encerrar 
