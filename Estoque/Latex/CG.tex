@@ -1,0 +1,1138 @@
+\documentclass[12pt]{article}
+
+\usepackage{algorithm2e}
+\usepackage{amsfonts}
+\usepackage{amsthm}
+\usepackage{amsmath}
+\usepackage[brazil,english]{babel}
+\usepackage[latin1]{inputenc}
+\usepackage[top=2.5cm,bottom=2.5cm,left=2.5cm,right=2.5cm]{geometry}
+\usepackage{graphicx}
+\usepackage{hyperref}
+\usepackage{subfigure}
+
+\hypersetup{%
+colorlinks=true, linkcolor=blue, citecolor=blue, urlcolor=blue, pdffitwindow=true, plainpages=false, hypertexnames=false, 
+pdftitle={Minimização irrestrita usando gradientes conjugados e regiões de confiança},
+pdfsubject={Otimização Numérica},
+pdfauthor={Gardenghi, J.L.C. \& Santos, S.A.},
+pdfkeywords={gradientes conjugados, minimização irrestrita, região de confiança, CAS Maxima.}
+}
+
+% Indentação do Parágrafo
+\RequirePackage{indentfirst}
+\parindent 1.25cm
+
+% Formatação de estilos do package algorithm2e
+\RestyleAlgo{boxruled}
+\SetAlgorithmName{Algoritmo}{\autoref}{Lista de Algoritmos}
+\SetAlgoCaptionSeparator{:}
+\SetAlgoCaptionLayout{centerline}
+\SetAlgoLined
+
+% Estilos de Teorema
+\newtheorem{definicao}{Definição}
+\newtheorem{lema}{Lema}
+\newtheorem{corolario}{Corolário}
+\newtheorem{teorema}{Teorema}
+\newenvironment{prova}[1][Dem]{\noindent \textbf{#1.} }{\hfill \rule{0.5em}{0.5em}\\}
+
+% Comandos Definidos
+\newcommand{\up}[1]{\raisebox{1.5ex}[0pt]{#1}}
+
+% Título
+\title{\huge Minimização irrestrita usando gradientes conjugados e regiões de confiança\thanks{Este trabalho contou com o apoio do CNPq (Processos 304032/2010-7, 106731/2011-4 e 151749/2011-6) e PRONEX-Otimização.}}
+
+\author{%
+John Lenon C. Gardenghi\\
+Profa. Dra. Sandra Augusta Santos\\
+{\normalsize Departamento de Matemática Aplicada $\cdot$ IMECC $\cdot$ Unicamp}%
+}
+
+\date{\today}
+
+\parindent 20pt
+\pagestyle{headings}
+
+\begin{document}
+
+\selectlanguage{brazil}
+\thispagestyle{empty}
+
+\maketitle
+
+\begin{abstract}
+Este trabalho aborda o método de gradientes conjugados para resolução do subproblema de regiões de confiança para minimização irrestrita. Nosso objetivo consiste em descrever um estudo intuitivo e detalhado sobre este método, partindo de uma introdução aos métodos de direções conjugadas, alguns pré-requisitos e ferramentas necessárias para a compreensão dos gradientes conjugados e sua integração com a estratégia de região de confiança para minimização irrestrita. A implementação computacional do método no \textit{CAS Maxima} proporcionou a experimentação numérica, que validou o estudo e a implementação feitos e permitiu uma comparação para problemas de quadrados mínimos com o método de Levenberg-Marquardt.
+
+\begin{description}
+	\item[Palavras-chave] gradientes conjugados, regiões de confiança, minimização irrestrita, CAS Maxima.
+\end{description}
+\end{abstract}
+
+{
+\selectlanguage{english}
+\begin{abstract}
+This work focus on the conjugate gradient method to solve the trust region subproblem for unconstrained minimization. We aim to describe an intuitive and detailed study about this method, starting from an introduction to methods of conjugate directions, some necessary requisites and tools for understanding the conjugate gradient method and its integration with the trust region strategy for unconstrained minimization. The computational implementation of the method using the CAS Maxima enabled the numerical experiments, which validated the study and the implementation done and allowed a comparison between conjugate gradient and Leverberg-Marquardt for least squares problems.
+
+\begin{description}
+	\item[Key words] conjugate gradients, trust region, unconstrained minimization, CAS Maxima.
+\end{description}
+\end{abstract}
+}
+
+\section{Introdução}
+
+Neste trabalho, vamos considerar o problema de minimização irrestrita:
+\begin{eqnarray}\label{eq:mi} 
+	&            \min f(x)             & \nonumber \\
+	& \mbox{s.a. } x \in \mathbb{R}^n, &
+\end{eqnarray}
+onde $f: \mathbb{R}^n \rightarrow \mathbb{R}$ é suave e duas vezes continuamente diferenciável em $\mathbb{R}^n$.
+
+Para resolver o problema (\ref{eq:mi}), vamos usar o método de regiões de confiança, definindo a cada iteração o modelo quadrático $q_c(p)$ em torno do ponto corrente $x_c$ e resolvendo, exata ou aproximadamente, o subproblema:
+\begin{eqnarray}\label{eq:submi}
+	&            \min q_c(p)             & = f(x_c) + g_c^Tp + \frac{1}{2}p^TH_cp \nonumber \\
+	& \mbox{s.a. } \| p \| \leq \Delta_c, &
+\end{eqnarray}
+onde $\Delta_c$ é o raio da região de confiança corrente, $g_c \equiv \nabla f(x_c) \in \mathbb{R}^{n}$ é o vetor gradiente, $H_c \equiv \nabla^2 f(x_c) \in \mathbb{R}^{n \times n}$ é a matrix hessiana da função objetivo avaliada no ponto $x_c$ e $\| . \|$ é a norma euclidiana. A solução $p^*$ do problema (\ref{eq:submi}) será o passo para obter o próximo ponto para o problema (\ref{eq:mi}), $x_n = x_c + p^*$.
+
+Neste contexto, vamos abordar o método de {\bf gradientes conjugados} para resolução do subproblema (\ref{eq:submi}). Nosso objetivo consiste em descrever um estudo intuitivo e detalhado sobre este método, partindo de uma introdução aos métodos de direções conjugadas, alguns pré-requisitos e ferramentas necessárias para a compreensão dos gradientes conjugados e sua integração com a estratégia de região de confiança para mimimização irrestrita.
+
+\section{Métodos de direções conjugadas}
+
+Para estudar o método de direções conjugadas, considere o problema de resolver um sistema linear possível e determinado
+\begin{equation} \label{eq:spd}
+Ax = b,
+\end{equation}
+com matriz dos coeficientes $A \in \mathbb{R}^{n \times n}$ simétrica e definida positiva, vetor dos termos independentes $b \in \mathbb{R}^n$ e vetor das incógnitas $x \in \mathbb{R}^n$. A solução $x^*$ de (\ref{eq:spd}) é o minimizador do problema quadrático:
+\begin{eqnarray} \label{eq:mq}
+	& \min q(x) & = \frac{1}{2} x^TAx - b^Tx + c \\ \nonumber
+	& \mbox{s.a. } x \in \mathbb{R}^n. &
+\end{eqnarray}
+
+Essa equivalência nos permite analisar o algoritmo como uma estratégia tanto para resolver um sistema linear quanto um problema de minimização quadrática, pois resolver (\ref{eq:spd}) equivale a encontrar um ponto estacionário para a função $q$ em (\ref{eq:mq}). De fato, como:
+$$
+\nabla q(x) = Ax - b,
+$$
+então
+$$
+\nabla q(x^*) = 0 \leftrightarrow Ax^* = b.
+$$
+
+Sendo $q$ estritamente convexa, pois $A$ é positiva definida, condições necessárias de primeira ordem são suficientes para concluir que $x^*$ é minimizador do problema (\ref{eq:mq}).
+
+Primeiro, vamos definir os seguintes conceitos:
+\begin{description}
+\item[Erro] O erro corresponde, na $i$-ésima iteração, a quanto nos falta para chegar à solução $x^*$ do problema:
+\begin{equation}\label{eq:erro}
+e_i = x_i - x^*;
+\end{equation}
+\item[Resíduo] O resíduo corresponde ao valor de quão longe estamos de satisfazer as equações lineares do problema (\ref{eq:spd}), equivalendo ao oposto do gradiente da função $q$ avaliado em $x_i$:
+\begin{equation}\label{eq:res}
+r_i = b - Ax_i = -\nabla q(x_i).
+\end{equation}
+
+\end{description}
+
+Como $x^*$ é solução do problema (\ref{eq:spd}), o erro e o resíduo se relacionam da seguinte maneira:
+\begin{eqnarray}
+	r_i & = & b - Ax_i \nonumber \\
+	r_i & = & Ax^* - Ax_i = A(x^* - x_i) \nonumber \\
+	r_i & = & -Ae_i, \mbox{ pela Equação~(\ref{eq:erro})} \label{eq:reserr}
+\end{eqnarray}
+
+Com isso, suponha que nosso objetivo a cada iteração é definir
+\begin{equation}\label{eq:it}
+x_{i+1} = x_i + \alpha_i d_i,
+\end{equation}
+de tal forma que a direção $d_i$ seja esgotada, ou seja, que encontremos o passo ótimo para percorrê-la. A maneira mais direta que temos é estabelecer a ortogonalidade entre a $i$-ésima direção e o termo do erro da etapa $(i+1)$:
+\begin{equation}\label{eq:ort}
+d_i^Te_{i+1} = 0.
+\end{equation}
+
+De (\ref{eq:it}) e (\ref{eq:ort}), podemos escrever:
+\begin{eqnarray}\label{eq:alpha}
+d_i^T(e_i + \alpha_i d_i) & = & 0 \nonumber \\
+\alpha_i = -\frac{d_i^Te_i}{d_i^Td_i}.
+\end{eqnarray}
+
+Repare que~(\ref{eq:alpha}) em~(\ref{eq:it}) é uma projeção do erro da $i$-ésima etapa sobre a direção $d_i$. Isso significa que o próximo iterando $x_{i+1}$ estará o mais próximo possível da solução $x^*$ dado o quanto a direção $d_i$ é capaz de permitir, portanto~(\ref{eq:alpha}) determina o passo ótimo a percorrer nessa direção.
+
+Entretanto, não conhecemos o erro, pois se este fosse conhecido o problema estava resolvido. Todavia, a relação~(\ref{eq:reserr}) nos dá uma equivalência entre o erro e o resíduo, que por sua vez é conhecido. Este fato sugere tomarmos uma referência que envolva a matriz $A$ de tal maneira a poder usar o resíduo. Então, ao invés de estabelecer a ortogonalidade, vamos procurar direções {\it conjugadas} ou {\it A-ortogonais} ao erro. Diz-se que os vetores de um conjunto $\{ v_k \}_{k=0}^{n-1}$ são $A$-ortogonais ou conjugados se:
+$$
+\displaystyle v_i^T A v_j = 0, \forall i \neq j.
+$$
+
+Então, vamos tomar:
+\begin{equation}\label{eq:conj1}
+d_i^TAe_{i+1} = 0.
+\end{equation}
+
+A relação (\ref{eq:conj1}) nos dá dois resultados imediatos:
+\begin{enumerate}
+	\item Não se conhece o erro, entretanto se conhece uma expressão que relaciona o erro com o resíduo na $i$-ésima iteração, em vista disso, por (\ref{eq:reserr}) em (\ref{eq:alpha}), temos:
+	\begin{eqnarray}\label{eq:alpha2}
+		\alpha_i & = & -\frac{d_i^T A e_i}{d_i^T A d_i} \nonumber \\
+						 & = & \frac{d_i^Tr_i}{d_i^T A d_i}.
+	\end{eqnarray}
+	
+	\item Essa relação equivale a fazer uma busca linear exata ao longo da direção $d_i$. Para isso, basta pedir que a derivada direcional de $q$, definida em (\ref{eq:mq}), na direção $d_i$, avaliada em $x_{i+1} = x_i + \alpha d_i$ valha zero, ou seja:
+	\begin{eqnarray}\label{eq:derdir}
+		\frac{d}{d\alpha}q(x_i + \alpha d_i)                            & = & 0 \nonumber \\
+		\nabla q(x_i + \alpha d_i)^T\frac{d}{d\alpha}(x_i + \alpha d_i) & = & 0 \nonumber \\
+		(A x_{i+1} - b)^T d_i                                           & = & 0 \nonumber \\
+		-r_{i+1}^Td_i                                                   & = & 0, \mbox{ pela Equação~(\ref{eq:res})} \nonumber \\
+		d_i^TAe_{i+1}                                                   & = & 0, \mbox{ pela Equação~(\ref{eq:reserr})},
+	\end{eqnarray}
+	portanto a relação (\ref{eq:conj1}) satisfaz:
+	\begin{equation}\label{eq:minalpha}
+		q(x_i + \alpha_i d_i) = \min_{\alpha \in \mathbb{R}} q(x_i + \alpha d_i).
+	\end{equation}
+\end{enumerate}
+
+Por fim, um dos resultados mais importantes do uso da conjugação entre as direções é que um problema $n$-dimensional é resolvido em, no máximo, $n$ passos. Para mostrar este resultado, inspirados na proposta de Izmailov e Solodov \cite[cap. 3]{solodov}, vamos primeiro apresentar um lema, mostrando que um conjunto de direções conjugadas é linearmente independente.
+
+\begin{lema}\label{lem:dirconj}
+Para toda matriz $A \in \mathbb{R}^{n \times n}$ simétrica e definida positiva, um conjunto $\{ d_k \}_{k=0}^{n-1}$ de direções $d_k \in \mathbb{R}^n$ A-ortogonais ou conjugadas entre si é linearmente independente.
+\end{lema}
+
+\begin{prova}
+Vamos fazer esta prova por absurdo. Suponha que podemos escrever $d_0$ como uma combinação linear dos vetores do conjunto $\{ d_1, \ldots, d_{n-1} \}$. Então:
+\begin{equation}\label{eq:lema}
+	d_0 = \sum_{\imath = 1}^{n-1} \beta_\imath d_\imath,
+\end{equation}
+com $\beta_\imath \in \mathbb{R}$, $\imath = 1, \ldots, n-1$. Pré-multiplicando (\ref{eq:lema}) por $d_0^T A$, dado que a matriz $A$ é definida positiva e a direção $d_0$ é não nula e conjugada às direções $\{ d_1, \ldots, d_{n-1} \}$, temos que:
+$$
+	0 < d_0^T A d_0 = \sum_{\imath = 1}^{n-1} \beta_\imath d_0 A d_\imath = 0,
+$$
+o que nos dá a contradição.
+\end{prova}
+
+O Lema~\ref{lem:dirconj} garante que é possível formar uma base para o $\mathbb{R}^n$ com o conjunto $\{ d_k \}$ das $n$ direções conjugadas. Vamos à prova de que qualquer método de direções conjugadas resolve o problema~(\ref{eq:mq}) em, no máximo, $n$ iterações. 
+
+\begin{teorema}\label{teo:conj}
+Para qualquer ponto inicial $x_0 \in \mathbb{R}^n$, a sequência $\{ x_k \}$ gerada por~(\ref{eq:it}), escolhendo-se qualquer conjunto $\{ d_0, d_1, \ldots, d_{n-1} \}$ de direções conjugadas entre si, converge para $x^*$, solução global do problema~(\ref{eq:mq}), em, no máximo, $n$ passos.
+\end{teorema}
+
+\begin{prova}
+Seja $x^* \in \mathbb{R}^n$ solução do problema~(\ref{eq:mq}). Pela convexidade do problema, $x^*$ é solução global.
+
+Como o conjunto $\{ d_0, d_1, \ldots, d_{n-1} \}$ é linearmente independente, pelo Lema~\ref{lem:dirconj}, podemos escrever o erro inicial como combinação linear destas direções. Temos, então:
+\begin{equation}\label{eq:erroteo}
+	e_0 = x_0 - x^* = \sum_{\jmath = 0}^{n-1} \sigma_\jmath d_\jmath,
+\end{equation}
+com $\sigma_\jmath \in \mathbb{R}, \jmath = 0, 1, \ldots, n-1$. Mas por~(\ref{eq:it}), podemos escrever:
+\begin{equation}\label{eq:solteo}
+	x^* = x_0 + \sum_{\jmath = 0}^{n-1} \alpha_\jmath d_\jmath,
+\end{equation}
+para escalares $\alpha_j$ definidos em~(\ref{eq:alpha2}). Essa relação sugere demonstrar que $\alpha_\jmath = -\sigma_\jmath$, \linebreak $\forall \jmath~=~0, 1, \ldots, n~-~1$.
+
+Pré-multiplicando~(\ref{eq:erroteo}) por $d_k^TA$, vem que:
+\begin{eqnarray}\label{eq:sigalpha}
+	d_k^TAe_0 & = & \sigma_k d_k^T A d_k, \mbox{ pela conjugação das direções} \nonumber \\
+	\Rightarrow \sigma_k  & = & \frac{d_k^T A e_0}{d_k^T A d_k} \nonumber \\
+						& = & \frac{d_k^T A (e_0 + \sum_{\imath = 0}^{k-1} \alpha_\imath d_\imath)}{d_k^T A d_k}, \mbox{ pela conjugação das direções} \nonumber \\
+						& = & \frac{d_k^T A e_k}{d_k^T A d_k}, \mbox{ pela Equação~(\ref{eq:it})} \nonumber \\
+						& = & -\frac{d_k^T r_k}{d_k^T A d_k}, \mbox{ pela Equação~(\ref{eq:reserr})} \nonumber \\
+						& = & -\alpha_k, \mbox{ pela Equação~(\ref{eq:alpha2})},
+\end{eqnarray}
+o que nos dá o resultado esperado. A relação~(\ref{eq:sigalpha}) pode ser vista como o processo de eliminar o $i$-ésimo termo do erro, a cada iteração, na base formada pelas direções conjugadas $\{ d_0, d_1, \ldots, d_{n-1} \}$:
+\begin{eqnarray}\label{eq:comberr}
+	e_i & = & e_0 + \sum_{\jmath = 0}^{i-1} \alpha_\jmath d_\jmath \nonumber \\
+	    & = & \sum_{\jmath = 0}^{n-1} \sigma_\jmath d_\jmath - \sum_{\jmath = 0}^{i-1} \sigma_\jmath d_\jmath \nonumber, \mbox{ pelas Equações~(\ref{eq:erroteo}) e~(\ref{eq:sigalpha})} \\
+	    & = & \sum_{\jmath = i}^{n-1} \alpha_\jmath d_\jmath.
+\end{eqnarray}
+
+Após $n$ iterações, todas as componentes serão eliminadas, e o erro zerado.
+\end{prova}
+
+Neste ponto, sabe-se, pelo Teorema~\ref{teo:conj}, que para resolver os problemas~(\ref{eq:spd}) e~(\ref{eq:mq}) pelo esquema~(\ref{eq:it}) em, no máximo, $n$ iterações, basta conhecer um conjunto de direções conjugadas entre si $\{ d_k \}_{k=0}^{n-1}$. Por isso, agora, apresentamos um método para se obter este conjunto, que é a conjugação de Gram-Schmidt, e também vamos apresentar uma relação interessante entre esse método e a eliminação Gaussiana para resolução de sistemas lineares.
+
+\subsection{Conjugação de Gram-Schmidt}\label{sec:gsch}
+
+Esse processo é bem semelhante ao conhecido processo de ortogonalização de Gram-Schmidt, entretanto usa informações da matriz $A$ para fazer com que os vetores aos quais forem aplicados o método se tornem conjugados entre si.
+
+Suponha que queremos obter um conjunto de direções conjugadas entre si $\{ d_k \}_{k=0}^{n-1}$. O método consiste em partir de um conjunto de vetores linearmente independentes entre si $\mathcal{U} = \{ u_0,~u_1,~\ldots,~u_{n-1} \}$ e construir a direção $d_i$ subtraindo de $u_i$ as componentes que não forem conjugadas aos vetores $\{ d_0,~\ldots,~d_{i-1} \}$. De uma maneira prática, toma-se $d_0~=~u_0$ e, para $i~=~0,~1,~\ldots,~n-1$:
+\begin{equation}\label{eq:gsit}
+	d_i = u_i + \sum_{k = 0}^{i - 1} \beta_{ik} d_k,
+\end{equation}
+onde $\beta_{ik} \in \mathbb{R}^n$ é definido para todo $k < i$. Para encontrar seu valor, basta pós-multiplicar o transposto de~(\ref{eq:gsit}) por $A d_j$, $j < i$:
+\begin{eqnarray}\label{eq:gsbeta}
+	d_i^T A d_j            & = & u_i^T A d_j + \sum_{k = 0}^{i - 1} \beta_{ik} d_k^T A d_j \nonumber \\
+	      0                & = & u_i^T A d_j + \beta_{ij} d_j^T A d_j \nonumber \\
+	\Rightarrow \beta_{ij} & = & - \frac{u_i^T A d_j}{d_j^T A d_j}, \quad j < i, i = 0, 1, \ldots, n-1.
+\end{eqnarray}
+
+Com isso, temos:
+$$
+d_0 = u_0
+$$
+e, para $i \geq 1$:
+\begin{eqnarray}\label{eq:dcit}
+d_i & = & u_i - \sum_{j=0}^{i-1} \frac{u_i^T A d_j}{d_j^T A d_j} d_j \nonumber \\
+    & = & \left(I -  \sum_{j=0}^{i-1} \frac{ d_j d_j^T A}{d_j^T A d_j} \right) u_i.
+\end{eqnarray}
+
+Do ponto de vista computacional, o método de Gram-Schmidt apresenta a grande desvantagem de requerer o armazenamento de todas as direções usadas até a $i$-ésima etapa para se obter a direção da etapa $(i+1)$.
+
+O principal ponto a ser destacado aqui é que obter direções conjugadas equivale a obter direções ortogonais em um espaço reescalado. Ora, basta tomar $A = I$ que a conjugação se torna ortogonalidade e o processo de \textit{conjugação} de Gram-Schmidt é o próprio processo de \textit{ortogonalização} de Gram-Schmidt.
+
+Agora vamos analisar a escolha do conjunto $\{ u_k \}$. Embora escolhas mais inteligentes sejam possíveis -- veremos adiante que o método de gradientes conjugados é um bom exemplo disso, a escolha trivial para esse conjunto é a base canônica do $\mathbb{R}^n$, ou seja, a $i$-ésima coordenada do vetor $u_i$ é $1$ enquanto as demais coordenadas são $0$. Aplicar o método de conjugação de Gram-Schmidt sobre uma base canônica do $\mathbb{R}^n$ equivale a aplicar a eliminação de Gauss sobre sobre uma matriz $A$ simétrica e definida positiva~\cite{gauss}. É o que vamos discutir na próxima seção.
+
+\subsubsection{Uma relação interessante}
+
+Como dito anteriormente, dado o problema~(\ref{eq:spd}), para a matriz dos coeficientes $A \in \mathbb{R}^{n \times n}$ simétrica e definida positiva, aplicar a eliminação de Gauss equivale a usar o método de conjugação de Gram-Schmidt aplicado ao conjunto inicial de vetores canônicos do $\mathbb{R}^n$ e, portanto, a eliminação Gaussiana pode ser vista como um método de direções conjugadas. Essa relação é interessante e não trivial, e já estava presente no trabalho de Hestenes e Stiefel~\cite[Seção 12]{hsconj}.
+
+Primeiro, vamos olhar mais atentamente para o método de eliminação de Gauss. Essa estratégia consiste em transformar uma matriz arbitrária $M$ numa matriz na forma escada, dita triangular superior, através de operações elementares, isto é, trocas de linhas (associada à estratégia de pivoteamento utilizada), multiplicação de uma linha por um escalar não nulo e substituição da $i$-ésima linha pela $i$-ésima linha mais um múltiplo da $j$-ésima linha. Em nosso contexto, vamos estudar essa transformação sobre matrizes quadradas, particularmente simétricas e definidas positivas, já que nosso objetivo é relacionar esse processo com conjugação de Gram-Schmidt. Por exemplo, seja a matriz $A$:
+$$
+\left(
+	\begin{array}{ccc}
+		8 & 2 & 1 \\
+		2 & 6 & 3 \\
+		1 & 3 & 4
+	\end{array}
+\right),
+$$
+aplicando a eliminação de Gauss, temos:
+$$
+A = \left(
+	\begin{array}{ccc}
+		8 & 2 & 1 \\
+		2 & 6 & 3 \\
+		1 & 3 & 4
+	\end{array}
+\right) \overrightarrow{\mbox{\footnotesize $L_2 \leftarrow L_2 - 0.25L_1$}}
+\left(
+	\begin{array}{ccc}
+		8 & 2 & 1 \\
+		0 & 5.5 & 2.75 \\
+		1 & 3 & 4
+	\end{array}
+\right) \overrightarrow{\mbox{\footnotesize $L_3 \leftarrow L_3 - 0.125L_1$}}
+$$
+$$
+\left(
+	\begin{array}{ccc}
+		8 &  2  & 1 \\
+		0 & 5.5 & 2.75 \\
+		0 & 2.75 & 3.875
+	\end{array}
+\right) \overrightarrow{\mbox{\footnotesize $L_3 \leftarrow L_3 - 0.5L_2$}}
+\left(
+	\begin{array}{ccc}
+		8 &  2  & 1 \\
+		0 & 5.5 & 2.75 \\
+		0 &  0  & 2.5
+	\end{array}
+\right) = U.
+$$
+
+Neste exemplo, usamos três operações elementares e chegamos a uma matriz triangular superior. As operações elementares aplicadas sobre a matriz $A$ podem ser expressas por matrizes $\{ E_k \}_{k=1}^{3}$ tais que cada matriz elementar representa a operação elementar aplicada sobre a matriz identidade. Com isso, nossa matriz triangular $U$ pode ser obtida pela expressão:
+$$
+	U = E_3 E_2 E_1 A.
+$$
+
+Repare que o processo de eliminação Gaussiana sem pivoteamento para $A \in \mathbb{R}^{n \times n}$ produz uma fatoração $A = LU$ de tal forma que:
+$$
+	L = E_1^{-1} E_2^{-1} E_3^{-1},
+$$
+e, ainda, que desta ótica pode ser visto como um processo iterativo tal que, se denotarmos
+$$
+	\widehat{E}_j = E_{m} \cdots E_1, \quad j = 2, \ldots, n - 1
+$$
+onde
+$$
+	m = \left\lceil \frac{j(n-1)}{2} \right\rceil,
+$$
+e tomarmos:
+$$
+	A^{(1)} = A
+$$
+na $k$-ésima iteração, teremos:
+$$
+	A^{(k)} = \widehat{E}_k \cdots \widehat{E}_3 \widehat{E}_2 A,
+$$
+com $k = 2, \ldots, n-1$.
+
+Como estamos considerando matrizes simétricas e definidas positivas, o processo de eliminação de Gauss é estável, seu produto final é único e a estratégia de pivoteamento é desnecessária. Por isso usamos apenas a operação elementar de eliminação por linha, em que substituimos a $i$-ésima linha pela $i$-ésima linha mais um múltiplo da $j$-ésima linha. Essa operação pode ser dada por:
+\begin{equation}\label{eq:elin}
+	A_i \leftarrow A_i - \frac{A_{i, j}}{A_{j, j}} A_j, \mbox{ para $i = j+1, ..., n$}.
+\end{equation}
+
+A eliminação por linhas expressa em (\ref{eq:elin}) consiste em zerar elementos abaixo da diagonal da matriz, das colunas da esquerda para a direita, sucessivamente, de modo a produzir uma matriz triangular superior. Neste contexto, vamos representar este processo como aplicações consecutivas sobre matrizes $\widehat{A}^{(i)} \in \mathbb{R}^{(n-i+1) \times (n-i+1)}$, com o objetivo de produzir, a cada iteração, algo da forma:
+\begin{equation}\label{eq:gaussit}
+	\widehat{A}^{(i)} = \left(
+		\begin{array}{cc}
+			a_i & w_i^T \\
+			 0  & \widehat{A}^{(i+1)}
+		\end{array}
+	\right),
+\end{equation}
+com $a_i \in \mathbb{R}$, $w_i \in \mathbb{R}^{(n-i)}$ e $\widehat{A}^{(i+1)} \in \mathbb{R}^{(n-i) \times (n-i)}$. Tradicionalmente, para a $k$-ésima linha, $k = 2, \ldots, n-i$, denotada por $\widehat{A}_k^{(i)}$ para a $i$-ésima etapa, podemos escrever:
+\begin{equation}\label{eq:elin.2}
+	\widehat{A}_k^{(i)} \leftarrow \widehat{A}_k^{(i)} - \frac{\widehat{A}_{k, 1}^{(i)}}{\widehat{A}_{1, 1}^{(i)}} \widehat{A}_1^{(i)},
+\end{equation}
+que é a expressão (\ref{eq:elin}) aplicada à submatriz $\widehat{A}_k^{(i)}$.
+
+Seja $Z \in \mathbb{R}^{(n-i+1) \times (n-i+1)}$ a matriz cujo vetor-coluna $z_k$ é o $k$-ésimo vetor canônico do $\mathbb{R}^{(n-i+1)}$, portanto $Z$ é a identidade de ordem $(n-i+1)$. Podemos denotar os elementos de $\widehat{A}^{(i)}$ como:
+\begin{equation}\label{eq:canonico.2}
+	\widehat{A}_{\imath, \jmath}^{(i)} = z_\imath^T \widehat{A}^{(i)} z_\jmath.
+\end{equation}
+
+De~(\ref{eq:canonico.2}) em~(\ref{eq:elin.2}), temos:
+\begin{equation}\label{eq:elin.22}
+	(\widehat{A}_k^{(i)})^T \leftarrow \widehat{A}^{(i)} \left( z_i - \frac{z_i^T \widehat{A}^{(i)} z_1}{z_1^T \widehat{A}^{(i)} z_1} z_1 \right) = \widehat{A}^{(i)} \vartheta_i.
+\end{equation}
+
+A semelhança entre a expressão~(\ref{eq:elin.22}) e o método de conjugação de Gram-Schmidt apresentado em (\ref{eq:dcit}) não é mera coincidência. Os vetores $\{ \vartheta_k \}$ são, pela expressão entre parênteses, conjugação dos vetores da matriz $Z$ com relação ao vetor $z_1$. Então, se definirmos a matriz
+$$
+	\widehat{T}^{(i)} = \left( \vartheta_1 \ \vartheta_2 \ldots \vartheta_{n-i+1} \right), \widehat{T}^{(i)} \in \mathbb{R}^{(n-i+1) \times (n-i+1)},
+$$
+% Neste ponto, a questão que vem à tona é: e quanto à terceira iteração? Pois bem, a terceira iteração será aplicada sobre a matriz $B \in \mathbb{R}^{(n-1) \times (n-1)}$ em~(\ref{eq:gaussit}). Com isso, a matriz inicial será equivalentemente $B$. A matriz $Z \in \mathbb{R}^{(n-1) \times (n-1)}$ é composta por vetores-colunas $z_k$ canônicos do $R^{n-1}$; será portanto uma matriz identidade de ordem $n-1$. Os vetores $\{ \vartheta_k \}$ agora comporão a matriz $T \in \mathbb{R}^{(n-1) \times (n-1)}$, que pode ser aplicada sobre a matriz $B$ ou, por outro lado, definindo:
+podemos determinar uma matriz $T^{(i)}$, $i = 1, \ldots, n$, tal que:
+$$
+	T^{(i)} = \prod_{k=1}^{i-1} \left(
+	\begin{array}{cc}
+		I_{(k)} & 0 \\
+		 0  & \widehat{T}^{(k+1)}
+	\end{array} \right) \widehat{T}^{(1)}, T^{(i)} \in \mathbb{R}^{n \times n},
+$$
+onde $I_{(k)}$ é a matriz identidade de ordem $k$. Assim, podemos aplicar:
+$$
+	A^{(i)} = T^{(i)} A,
+$$
+e, na etapa $(n-1)$, obter a matriz triangular superior $U$ usando $T^{(n-1)} \equiv T$:
+\begin{equation}\label{eq:luconj}
+	U = T A.
+\end{equation}
+
+Como o processo de eliminação Gaussiana, neste caso, produz uma fatoração $A = LU$ e de (\ref{eq:luconj}):
+$$
+  A = T^{-1} U,
+$$
+podemos concluir que:
+$$
+	L = T^{-1}
+$$
+e que $T$ é triangular inferior. Ainda, se pós-multiplicarmos (\ref{eq:luconj}) por $T^T$, temos:
+$$
+	U T^T = T A T^T.
+$$
+
+\begin{algorithm}[Ht]
+	\caption{Eliminação de Gauss e conjugação Gram-Schmidt}
+	\label{alg:gauss}
+	Dados $A \in \mathbb{R}^{n \times n}$, faça:
+	\BlankLine
+	\nl $T = I_n$\;
+	\nl $\imath = 1$\;
+	\nl $\widehat{A}^{(\imath)} = A$\;
+	\nl \Para{$k = n, \ldots, 2$}{
+		\BlankLine
+		\nl $\widehat{T} = I_k$\;
+		\BlankLine
+		\nl \Para{$\jmath = 2, \ldots, k$}{
+			\BlankLine
+			\nl $\displaystyle \widehat{T}_\jmath = \widehat{T}_\jmath - \frac{\widehat{T}_\jmath^T A^{(i)} \widehat{T}_1}{\widehat{T}_1^T A^{(i)}  \widehat{T}_1} \widehat{T}_1$
+		}
+		\BlankLine
+		\nl $\widehat{A}^{(\imath)} = \widehat{T} \widehat{A}^{(\imath)}$\;
+		\nl $\widehat{A}^{(\imath + 1)} = \widehat{A}^{(\imath)}[2:k; 2:k]$\;
+		\BlankLine
+		\nl\Se{$k \neq n$}{
+			\BlankLine
+			\nl $\displaystyle T = \left(
+																\begin{array}{cc}
+																		I_\imath & 0 \\
+																		    0    & \widehat{T}
+																\end{array}
+														 \right) T$
+		}
+		\nl $\imath = \imath + 1$\;
+	}
+	\nl \Retorna{$T$}\;
+\end{algorithm}
+
+Como $U$ e $T^T$ são triangulares superiores, então $T A T^T$ deve ser triangular superior. Entretanto, $T$ é triangular inferior, por conseguinte $T A T^T$ deve ser uma matriz diagonal. Com isso, concluímos que as colunas de $T$ são conjugadas entre si, isto é:
+$$
+	T_i A T_j^T = 0, \forall i \neq j.
+$$
+
+No Algoritmo~\ref{alg:gauss}, apresentamos o método para encontrar a matriz $T = T^{(n-1)}$ usando esta estratégia.
+
+\subsection{Otimalidade do método de direções conjugadas}\label{sec:otim}
+
+Métodos de direções conjugadas possuem, além da convergência apresentada no Teorema~\ref{teo:conj}, uma propriedade valiosa: encontram, a cada iteração, a melhor solução possível no espaço explorado.
+
+O espaço em questão trata-se do subespaço gerado pelas $k$ direções conjugadas na $k$-ésima iteração, que são linearmente independentes como provado no Lema~\ref{lem:dirconj} e que denotaremos por
+\begin{equation}\label{eq:espmin}
+ 	\mathcal{D}_{k} = \mbox{span}\{ d_0, d_1, \ldots, d_{k-1} \}.
+\end{equation}
+Neste contexto, a melhor solução pode ser interpretada de dois pontos de vista diferentes, entretanto equivalentes:
+\begin{itemize}
+	\item O método escolhe o valor do erro $e_k$ na variedade afim $e_0 + \mathcal{D}_k$ que minimiza o quadrado da norma de energia, isto é, que minimiza $\| e_k \|_{A}^{2}$, para todo $k = 0, \ldots, n-1$.
+	
+	Para ver essa propriedade, retomemos a expressão~(\ref{eq:comberr}), em que o erro era escrito como combinação linear das direções. Sabe-se que $\| e_k \|_{A}^{2} = e_k^T A e_k$, portanto, podemos expressar a norma da energia também em termos das direções conjugadas, ou seja:
+	\begin{eqnarray}\label{eq:normerr}
+		\| e_k \|_{A}^{2} & = & \sum_{j=k}^{n-1} \sum_{\ell=k}^{n-1} \alpha_j \alpha_\ell d_j^T A d_\ell \nonumber \\
+		            & = & \sum_{j=k}^{n-1} \alpha_j^2 d_j^T A d_j, \mbox{ pela conjugação das direções.}
+	\end{eqnarray}
+	
+	Repare que as direções com as quais a norma da energia do erro na $k$-ésima etapa se relaciona na expressão~(\ref{eq:normerr}) ainda não foram usadas, ou seja, qualquer outro valor do erro tomado no espaço $e_0 + \mathcal{D}_k$ será formado por combinações dessas direções, alem das que já foram usadas. Com isso, podemos concluir que a norma do erro obtida em~(\ref{eq:normerr}) é minima. Isto é consequência direta da expressão~(\ref{eq:comberr}), quando concluímos que, a cada iteração, uma componente do erro era zerada e, portanto, após $n$ iterações, o erro é zerado.
+	
+	\item A cada iteração $k$, o iterando $x_k$ minimiza a função $q$ definida em~(\ref{eq:mq}) na variedade afim $x_0 + \mathcal{D}_k$, para todo $k = 0, \ldots, n-1$.
+	
+	Se tomarmos $i = 0, \ldots, k$, temos:
+	\begin{eqnarray}\label{eq:sol1}
+		\nabla q(x_{k+1})^T d_i & = & (Ax_{k+1} - b)^T d_i \nonumber \\
+		                        & = & x_{k+1}^T A d_i - b^T d_i \nonumber \\
+		                        & = & (x_{i+1} + \sum_{j=i+1}^{k} \alpha_j d_j)^T A d_i - b^T d_i, \mbox{ pela relação~(\ref{eq:it})} \nonumber \\
+		                        & = & x_{i+1}^T A d_i - b^T d_i, \mbox{ pela conjugação das direções} \nonumber \\
+		                        & = & (Ax_{i+1} - b)^T d_i \nonumber \\
+		                        & = & \nabla q(x_{i+1})^T d_i.
+	\end{eqnarray}
+	
+	Pela equação~(\ref{eq:derdir}) e pela relação~(\ref{eq:minalpha}), temos que:
+	\begin{equation}\label{eq:sol2}
+		\nabla q(x_{i+1})^T d_i = \nabla q(x_i + \alpha_i d_i)^T d_i = 0.
+	\end{equation}
+	
+	Por conseguinte, podemos concluir de~(\ref{eq:sol2}) em~(\ref{eq:sol1}) que:
+	\begin{equation}\label{eq:sol3}
+		\nabla q(x_{k+1})^T d_i = 0, \forall i = 0, \ldots, k.
+	\end{equation}
+	
+	A relação~(\ref{eq:sol3}) diz que a derivada direcional ao longo da direção $d_i$, $i = 0, \ldots, k$, sempre será zero no iterando $x_{k+1}$, obtido na $k$-ésima iteração. Como o problema é quadrático, vem que $x_{k+1}$ é minimizador de $q$ no espaço $x_0 + \mathcal{D}_k$, para todo $k = 0, \ldots, n-1$.
+	Vale dizer que esta proposição reafirma o Teorema~\ref{teo:conj} pois, se $x_k$ minimiza $q$ na $k$-ésima iteração, então, na pior das hipóteses, quando $k=n$, $x^* = x_n$ será o minimizador de $q$ no $\mathbb{R}^n$.
+	
+\end{itemize}
+
+Na próxima seção, vamos apresentar o método de gradientes conjugados, suas principais propriedades teóricas e porque ele é um método de direções conjugadas que se sobressaiu aos demais.
+
+\section{Método de gradientes conjugados}\label{sec:gradconj}
+
+O Método de Gradientes Conjugados (MGC) é um método de direções conjugadas bem interessante por suas propriedades teóricas e desempenho, especialmente em problemas de grande porte. Em linhas gerais, o MGC é uma estratégia de direções conjugadas em que os passos de busca são construídos pela conjugação dos resíduos (que são os opostos dos gradientes, como definimos em~(\ref{eq:res})). De forma mais específica, nosso conjunto de vetores linearmente independentes $\mathcal{U}$, definidos na Seção~\ref{sec:gsch}, a partir do qual o conjunto de direções conjugadas é construído, será composto pelos resíduos do sistema linear~(\ref{eq:spd}) nas respectivas iterações.
+
+A escolha dos gradientes para este conjunto apresenta algumas propriedades teóricas bem úteis. Primeiramente, vamos mostrar que os gradientes formam um conjunto de vetores linearmente independentes, já que este é o primeiro requisito para definição do conjunto $\mathcal{U}$. Além disso, vamos mostrar que esse conjunto apresenta uma propriedade mais interessante: é ortogonal. Essa propriedade será o principal ingrediente para mostrar porque o método dos gradientes conjugados é o destaque entre os métodos de direções conjugadas.
+
+\begin{lema}\label{lem:gradort}
+Seja $q : \mathbb{R}^n \rightarrow \mathbb{R}$ definida em (\ref{eq:mq}), com $A \in \mathbb{R}^{n \times n}$ simétrica e definida positiva e $b \in \mathbb{R}^n$. Dado o ponto inicial $x_0 \in \mathbb{R}^n$ e a sequência $\{ x_k \}$ gerada pelo metodo de gradientes conjugados, então para todo $k = 1, \ldots, n$, os gradientes $\nabla q(x_0),\nabla q(x_1), \ldots, \nabla q(x_{k-1})$ compõem um conjunto de vetores ortogonais em $\mathbb{R}^n$.
+\end{lema}
+
+\begin{prova}
+A prova é feita por indução. Para $k=2$ os gradientes $\nabla q(x_0)$ e $\nabla q(x_1)$ são ortogonais, pois $d_0 = -\nabla q(x_0)$ e pela relação~(\ref{eq:derdir}):
+$$
+	\nabla q(x_1)^T d_0 = 0.
+$$
+
+Agora vamos supor que esta relação seja verdadeira para $k > 2$, isto é:
+\begin{equation}\label{eq:gradort}
+	\nabla q(x_k)^T \nabla q(x_i) = 0, \forall i = 0, 1, \ldots, k-1.
+\end{equation}
+
+Como o nosso conjunto $\mathcal{U}$ será composto pelos gradientes, temos, de~(\ref{eq:gsit}), para \linebreak $u_i = r_i = - \nabla q(x_i)$:
+\begin{eqnarray}\label{eq:grad}
+	     d_i      & = & - \nabla q(x_i) + \sum_{\ell=0}^{i-1} \beta_{i\ell} d_\ell \nonumber \\
+	\nabla q(x_i) & = & -d_i + \sum_{\ell=0}^{i-1} \beta_{i\ell} d_\ell, \mbox{ para $i = 0, \ldots, k$.}
+\end{eqnarray}
+
+Sabendo que~(\ref{eq:sol3}) vale, de~(\ref{eq:gradort}) e~(\ref{eq:grad}), temos:
+\begin{eqnarray}
+	\nabla q(x_{k+1})^T \nabla q(x_i) & = & \nabla q(x_{k+1})^T ( -d_i + \sum_{\ell=0}^{i-1} \beta_{i\ell} d_\ell ) \nonumber \\
+	                              & = & - \nabla q(x_{k+1})^T d_i + \sum_{\ell=0}^{i-1} \beta_{i\ell} \nabla q(x_{k+1})^T d_\ell \nonumber \\
+	                              & = & 0, \quad \forall i = 0, 1, \ldots, k, \nonumber
+\end{eqnarray}
+que nos dá o resultado esperado.
+\end{prova}
+
+% Frente à propriedade de ortogonalidade do conjunto $\mathcal{U}$ apresentada no Lema~\ref{lem:gradort}, vamos analisar o processo de obter direções conjugadas usando o método de Gram-Schmidt. 
+Frente à propriedade de ortogonalidade do conjunto $\mathcal{U}$ apresentada no Lema~\ref{lem:gradort}, retomemos a relação~(\ref{eq:reserr}) do ponto de vista do processo iterativo do MGC. Temos:
+\begin{eqnarray}\label{eq:combres}
+	r_{i+1} & = & - A e_{i+1} \nonumber \\
+	        & = & - A (e_i + \alpha_i d_i), \mbox{ pela Equação~(\ref{eq:it})} \nonumber \\
+	        & = & r_i - \alpha_i A d_i.
+\end{eqnarray}
+
+A relação~(\ref{eq:combres}) mostra que, além da propriedade de ortogonalidade com os demais resíduos do conjunto $\mathcal{U}$, na $i$-ésima iteração o resíduo $r_i$ é uma combinação linear do resíduo $r_{i-1}$ e do vetor $A d_{i-1}$. Do ponto de vista computacional, o uso desta equação proporciona uma redução na quantidade necessária de produtos matriz-vetor para computar o $i$-ésimo iterando, visto que o produto $A d_{i-1}$ já foi usado no cálculo do coeficiente $\alpha_i$ em~(\ref{eq:alpha2}).
+
+Diante disso, dado o processo de conjugação de Gram-Schmidt, de~(\ref{eq:gsbeta}), com nosso conjunto $\mathcal{U}$ formado pelos resíduos, temos:
+\begin{equation}\label{eq:beta}
+	\beta_{ij} = - \frac{r_i^T A d_j}{d_j^T A d_j}
+\end{equation}
+
+Pré-multiplicando~(\ref{eq:combres}) reescrita no índice $j$ por $r_i^T$, temos:
+\begin{eqnarray}\label{eq:alpha1}
+	    r_i^T r_{j+1}    & = & r_i^T r_j - \alpha_j r_i^T A d_j \nonumber \\
+	\alpha_j r_i^T A d_j & = & r_i^T r_j - r_i^T r_{j+1}
+\end{eqnarray}
+
+Usando a propriedade de ortogonalidade do conjunto dos resíduos, de~(\ref{eq:alpha1}) teremos:
+\begin{itemize}
+	\item Se $i = j$, então $r_i^T r_j \neq 0$ e $r_i^T r_{j+1} = 0$;
+	\item Se $i = j+1$, então $r_i^T r_j = 0$ e $r_i^T r_{j+1} \neq 0$;
+	\item Para qualquer outro valor de $i$ e $j$, $r_i^T r_j = 0$ e $r_i^T r_{j+1} = 0$.
+\end{itemize}
+
+Ora, se $r_i^T r_j = 0$ e $r_i^T r_{j+1} = 0$ então $r_i^T A d_j = 0$ e, consequentemente por~(\ref{eq:beta}), $\beta_{ij} = 0$, sempre que $i \neq j$ e $i \neq j+1$. Por conseguinte, o somatório da equação~(\ref{eq:gsit}) é eliminado, exceto para o último iterando da soma, em que $j = i-1 \Rightarrow i = j+1$. Devido a isso, de~(\ref{eq:alpha1}) temos que:
+$$
+	r_i^T A d_j = \frac{1}{\alpha_{i-1}} r_i^T r_{i},
+$$
+resultando em um único coeficiente não-nulo que será:
+\begin{equation}\label{eq:beta2}
+	\beta_i \equiv \beta_{i,i-1} = \frac{1}{\alpha_{i-1}} \frac{r_i^T r_i}{d_{i-1}^T A d_{i-1}}.
+\end{equation}
+
+Eis a grande vantagem do MGC: como dentre todos os termos do somatório de~(\ref{eq:gsit}) só restou um devido à ortogonalidade dos elementos do conjunto $\mathcal{U}$, então não é mais necessário armazenar todas as direções $\{ d_k \}_{k=0}^{i-1}$ geradas até a $i$-ésima iteração, reduzindo a relação~(\ref{eq:gsit}) para simplesmente computar:
+\begin{equation}\label{eq:dir}
+	d_{i} = r_{i} + \beta_i d_{i-1}, \mbox{ com $\beta_i$ dado por~(\ref{eq:beta2}).}
+\end{equation}
+
+Como o valor de $\alpha_{i-1}$ é conhecido~(\ref{eq:alpha2}), podemos manipular~(\ref{eq:beta2}) de forma que:
+\begin{equation}\label{eq:beta3}
+	\beta_i = \frac{r_i^T r_i}{d_{i-1}^T r_{i-1}}.
+\end{equation}
+
+No entanto, se pré-multiplicarmos~(\ref{eq:dir}) por $r_i$, vem que:
+\begin{eqnarray}\label{eq:resdireq}
+	r_i^T d_i & = & r_i^T r_i + \beta_i r_i^T d_{i-1} \nonumber \\
+	r_i^T d_i & = & r_i^T r_i, \mbox{ pela Equação~(\ref{eq:sol3})}.
+\end{eqnarray}
+
+Com isso, podemos simplificar~(\ref{eq:beta3}) e obter:
+\begin{equation}\label{eq:betafinal}
+	\beta_i = \frac{r_i^T r_i}{r_{i-1}^T r_{i-1}}.
+\end{equation}
+
+Por fim, os elementos apresentados até agora compõem o Algoritmo~\ref{alg:gradconj}.
+
+\begin{algorithm}[htbp]
+	\caption{Método de Gradientes Conjugados}
+	\label{alg:gradconj}
+	Dados $x_0 \in \mathbb{R}^n$ o ponto inicial, $A \in \mathbb{R}^{n \times n}$ simétrica e definida positiva, $b \in \mathbb{R}^n$ e uma tolerância $\epsilon \in \mathbb{R}$ suficientemente pequena, então:
+	\BlankLine
+	\nl $d_0 = r_0 = b - A x_0$\;
+	\nl \Para{$i = 0, \ldots, n$}{
+			\BlankLine
+			\nl $\displaystyle \alpha_i = \frac{r_i^T r_i}{d_i^T A d_i}$\;
+			\nl $x_{i+1} - x_i + \alpha_i d_i$\;
+			\nl $r_{i+1} = r_i - \alpha_i A d_i$\;
+			\nl \lSe{$\| r_{i+1} \| \leq \epsilon$}{\Retorna{$x_{i+1}$}\;}
+			\nl $\displaystyle \beta_{i+1} = \frac{r_{i+1}^T r_{i+1}}{r_{i}^T r_{i}}$\;
+			\nl $d_{i+1} = r_{i+1} + \beta_{i+1} d_i$\;
+		}
+\end{algorithm}
+
+\subsection{Sobre a convergência do MGC}
+
+Um dos princípios do MGC é que ele resolve um problema de dimensão $n$ em, no máximo, $n$ iterações. Todavia, erros de aproximação e arredondamento podem afetar essa propriedade. Por isso é importante a análise de convergência, para mostrar que o algoritmo é capaz de convergir à solução do problema em todos os casos. Além disso, por se destinar a resolver problemas de grande porte, seria desejável que pudesse convergir em menos que $n$ iterações. Nesse sentido, uma análise que permita estimar o pior caso é interessante.
+
+A base para análise de convergência deste método vem da forma particular que o espaço gerado pelas direções conjugadas possui. Em~(\ref{eq:espmin}), apresentamos o espaço $\mathcal{D}_{i}$, formado pelas direções conjugadas, no qual o MGC encontra a melhor solução possível. Todavia, como as direções são construídas a partir dos resíduos, então $\mathcal{D}_{i}$ também pode ser expresso como:
+$$
+	\mathcal{D}_{i} = \mbox{span} \{ r_0, r_1, \ldots, r_{i-1} \}.
+$$
+
+Mas, pela relação~(\ref{eq:combres}), temos que o resíduo, na $i$-ésima iteração, é gerado pela combinação linear do resíduo da iteração anterior $r_{i-1}$ e do vetor $A d_{i-1}$. Como $d_{i-1} \in \mathcal{D}_{i}$, então temos que o novo subespaço $\mathcal{D}_{i+1}$ será formado pelo subespaço anterior $\mathcal{D}_{i}$ e o subespaço $A \mathcal{D}_{i}$. Portanto:
+\begin{eqnarray}\label{eq:subesp}
+	D_i & = & \mbox{span} \{ d_0, A d_0, A^2 d_0, \ldots, A^{i-1} d_0 \} \nonumber \\
+	    & = & \mbox{span} \{ r_0, A r_0, A^2 r_0, \ldots, A^{i-1} r_0 \} \nonumber \\
+	    & = & \mbox{span} \{ A e_0, A^2 e_0, A^3 e_0, \ldots, A^i e_0 \}, \mbox{ pela Equação~(\ref{eq:reserr})}.
+\end{eqnarray}
+
+A partir deste ponto, consideremos que o iterando~(\ref{eq:it}) é escrito da seguinte forma:
+\begin{equation}\label{eq:it2}
+	x_{i+1} = x_0 + P_i(A) r_0,
+\end{equation}
+sendo que a seleção do conjunto de coeficientes para os polinômios $P_i$ determina a sequência $\{ x_k \}$ gerada. Subtraindo $x^*$, de~(\ref{eq:it2}), sabendo que~(\ref{eq:res}) vale, vem que:
+\begin{eqnarray}\label{eq:errexp1}
+	x_{i+1} - x^* & = & x_0 - x^* + P_i(A) A (x^* - x_0) \nonumber \\
+	      e_{i+1} & = & [ I - A P_i(A) ] e_0.
+\end{eqnarray}
+
+Com isso, o quadrado da norma de energia do erro na iteração $i+1$ pode ser expresso como:
+\begin{eqnarray}\label{eq:errexp2}
+	\| e_{i+1} \|_{A}^{2} & = & e_{i+1}^T A e_{i+1} \nonumber \\
+	                & = & \{ [ I - A P_i(A) ] e_0 \}^T A \{ [ I - A P_i(A) ] e_0 \} \nonumber \\
+	                & = & e_0^T A [ I - A P_i(A) ]^2 e_0.
+\end{eqnarray}
+
+% Na Seção~\ref{sec:otim}, foi exposto que o MGC encontra a melhor solução no espaço explorado, manifestada em duas instâncias: (i) a menor norma do erro na variedade afim $e_0 + \mathcal{D}_i$ e (ii) o minimizador de $q$ na variedade afim $x_0 + \mathcal{D}_i$. Da primeira instância, podemos concluir então que o MGC encontra o polinômio $P_i$ entre todos os de grau $i$ de forma que a norma de energia do erro seja minimizada. De~(\ref{eq:it2}), podemos expandir o polinômio de forma que:
+Deste ponto de vista, o problema agora pode ser colocado como encontrar o polinômio $P_i$, entre todos os de grau $i$, de forma que a norma da energia do erro seja minimizada. Se expandirmos o polinômio em~(\ref{eq:it2}), temos:
+\begin{equation}\label{eq:it3}
+	x_{i+1} = x_0 + \gamma_0 r_0 + \gamma_1 A r_0 + \ldots + \gamma_i A^i r_0,
+\end{equation}
+sendo que $\{ \gamma_k \}_{k=0}^{i}$ são coeficientes de $P_i$. Tomando a relação~(\ref{eq:it}) recorrentemente, o vetor $x_{i+1}$ também pode ser escrito como:
+\begin{equation}\label{eq:it4}
+	x_{i+1} = x_0 + \alpha_0 d_0 + \alpha_1 d_1 + \ldots + \alpha_i d_i.
+\end{equation}
+
+Da Seção~\ref{sec:otim}, sabe-se que na $i$-ésima iteração, o iterando $x_i$ é minimizador de $q$ na variedade afim $x_0 + D_i$. Como as relações~(\ref{eq:it3}) e~(\ref{eq:it4}) são equivalentes, e pelos espaços equivalentes expostos em~(\ref{eq:subesp}), então conclui-se que o MGC encontra o polinômio minimizante de grau $i$ na $i$-ésima iteração. De fato, também da Seção~\ref{sec:otim}, temos que o MGC minimiza a norma do erro na variedade afim $e_0 + \mathcal{D}_i$. Com isso, vem que o MGC é tal que:
+\begin{equation}\label{eq:errexp3}
+	\| e_{i+1} \|_{A}^{2} = \min_{P_i} e_0^T A [ I - A P_i(A) ]^2 e_0.
+\end{equation}
+
+A relação explícita entre os coeficientes $\{ \alpha_k \}_{k=0}^{i}$, gerados pelo método, e $\{ \gamma_k \}_{k=0}^{i}$, coeficientes do polinômio $P_i$, existe. Entretanto é algo relativamente complexo e impraticável, visto que o MGC encontra soluções ótimas a cada iteração sem exigir armazenamento de muitas informações. Por isso, vamos analisar o efeito da aplicação destes polinômios ao erro inicial $e_0$ e estimar limitantes superiores para o erro cometido. De~(\ref{eq:errexp3}), sabe-se que:
+\begin{equation}\label{eq:errexp4}
+	\| e_{i+1} \|_{A}^{2} \leq e_0^T A [ I - A P_i(A) ]^2 e_0.
+\end{equation}
+
+Como $A$ é uma matriz simétrica e positiva definida, então ela admite uma base ortonormal de autovetores $\{ v_j \}_{j=0}^{n-1}$ com $n$ autovalores associados $\{ \lambda_j \}_{j=0}^{n-1}$. Expressando o erro inicial como uma combinação linear dos autovetores, ortonormais, de $A$, vem que:
+\begin{equation}\label{eq:autoerr}
+	e_0 = \sum_{j=0}^{n} \xi_j v_j.
+\end{equation}
+
+De~(\ref{eq:autoerr}) em~(\ref{eq:errexp4}), vem que:
+\begin{eqnarray}\label{eq:cotaerr}
+	\| e_{i+1} \|_{A}^{2} & \leq & \sum_{j=0}^{n} \xi v_j^T A [ I - A P_i(A) ]^2 \xi v_j \nonumber \\
+	                      & \leq & \sum_{j=0}^{n} \xi^2 \lambda_j v_j^T v_j - \sum_{j=0}^{n} \xi^2 \lambda_j^3 P_i^2(\lambda_j) v_j^T v_j \nonumber \\
+	                      & \leq & \sum_{j=0}^{n} [ 1 - \lambda_j P_i(\lambda_j) ]^2 \xi^2 \lambda_j, \mbox{ pela ortonormalidade de $\{ v_j \}$}.
+\end{eqnarray}
+
+Na análise de pior caso, de~(\ref{eq:cotaerr}), segue que:
+\begin{equation}\label{eq:cotaerr2}
+	\| e_{i+1} \|_{A}^{2} \leq \max_{\lambda_j} [ 1 - \lambda_j P_i(\lambda_j) ]^2 \sum_{j=0}^{n} \xi^2 \lambda_j,
+\end{equation}
+sendo que, se manipularmos~(\ref{eq:autoerr}) temos:
+$$
+	\begin{array}{rcl}
+		\| e_0 \|_{A}^2 & = & e_0^T A e_0 \\
+		          & = & \displaystyle \sum_{j=0}^{n} \xi^2 v_j^T A v_j \\
+		          & = & \displaystyle \sum_{j=0}^{n} \xi^2 \lambda_j, \mbox{ pela ortonormalidade de $\{ v_j \}$},
+	\end{array}
+$$
+que, em~(\ref{eq:cotaerr2}), resulta em:
+\begin{equation}\label{eq:cotaerr3}
+	\| e_{i+1} \|_{A}^{2} \leq \max_{\lambda_j} [ 1 - \lambda_j P_i(\lambda_j) ]^2 \| e_0 \|_{A}^2.
+\end{equation}
+
+Esta análise encerra o estudo do MGC. Na próxima seção, vamos apresentar a integração deste método com regiões de confiança, suas principais propriedades e os resultados dos testes feitos.
+
+\section{MGC e a estratégia de região de confiança}
+
+Métodos de região de confiança são estratégias iterativas que resolvem um problema de minimização por sucessivas aproximações quadráticas em torno do ponto corrente $x_c$. Ao problema de minimizar essas aproximações quadráticas dentro de uma região definida dá-se o nome de {\it subproblema de região de confiança}.
+
+Tais métodos são essencialmente compostos por um algoritmo externo e um algoritmo interno. O algoritmo externo controla o descrescimento da função objetivo com relação ao modelo quadrático e o tamanho da região de confiança, que corresponde ao controle do passo. O algoritmo interno, por sua vez, resolve o subproblema de região de confiança a cada iteração. O algoritmo externo é, em geral, pré-definido, e não varia muito entre as várias estratégias propostas. A grande vantagem de se utilizar métodos de região de confiança está no algoritmo interno, que é geralmente personalizado para que se adeque melhor ao domínio do problema em questão. Uma referência definitiva para a estratégia de região de confiança é encontrada em Conn, Gould e Toint~\cite{livrocgt}.
+
+Neste contexto, vamos apresentar nesta seção o MGC como uma estratégia de região de confiança, isto é, um algoritmo para resolução do subproblema de região de confiança.
+
+\subsection{O problema}
+
+Vamos retomar o problema definido em~(\ref{eq:mi}). Seja $f: \mathbb{R}^n \rightarrow \mathbb{R}$, $f \in \mathcal{C}^2$, vamos tomar o problema geral de minimização irrestrita
+\begin{eqnarray}\label{eq:prob}
+	&            \min f(x)            & \nonumber \\
+	& \mbox{s.a. } x \in \mathbb{R}^n &
+\end{eqnarray}
+e resolvê-lo usando a estratégia de região de confiança, de forma que, para o ponto corrente $x_c$, a cada iteração, define-se um modelo quadrático $q_c(p)$ e resolve-se o subproblema de região de confiança, reescrevendo~(\ref{eq:submi}) sem perda de generalidade:
+\begin{eqnarray}\label{eq:subprob}
+	&            \min q_c(p)            & \displaystyle = \frac{1}{2} p^T H_c p + g_c^T p \nonumber \\
+	& \mbox{s.a } \| p \| \leq \Delta_c, &
+\end{eqnarray}
+onde $\Delta_c$ é o raio da região de confiança, $g_c \equiv \nabla f(x_c) \in \mathbb{R}^n$ é o gradiente de $f$ avaliado em $x_c$ e $H_c \equiv \nabla^2 f(x_c) \in \mathbb{R}^{n \times n}$ é a matriz Hessiana de $f$ avaliada em $x_c$.
+
+Desta maneira, (\ref{eq:subprob}) será resolvido usando o MGC e a solução global $p^*$ encontrada, minimizador de $q_c$ na bola de raio $\Delta_c$, será o passo para atualizar $x_n = x_c + p^*$, desde que $x_n$ realmente provoque descrescimento em $f$.
+
+\subsection{Solução do subproblema usando MGC}
+
+O breve desenvolvimento do MGC feito até aqui nos serve como base para expô-lo como um método para resolução do subproblema de região de confiança~(\ref{eq:subprob}).
+
+O uso do MGC na resolução do subproblema objetiva definir, a cada iteração:
+\begin{equation}\label{eq:itsub}
+	p_{i+1} = p_i + \alpha_i d_i,
+\end{equation}
+de forma que o conjunto das sequências $\{ d_k \}$ são encontradas a partir da conjugação dos resíduos de $q$, a cada iteração, e o tamanho do passo é encontrado de acordo com a estratégia do MGC apresentada na Seção~\ref{sec:gradconj}.
+
+Sabe-se que o MGC resolve um sistema linear possível e determinado, portanto o método poderia ser usado sem nenhuma preocupação desde que a função $q$ em~(\ref{eq:subprob}) fosse estritamente convexa. De fato~(\ref{eq:subprob}) define um problema quadrático, todavia não necessariamente estritamente convexo, isto é, $H_c$ pode definir qualquer curvatura. Por isso, é necessário que o MGC seja alterado para que possa ser uma estatégia adequada à resolução do problema~(\ref{eq:subprob}).
+
+Essas alterações foram propostas por Steihaug~\cite{steihaug} e consistem em modificar os critérios de parada do algoritmo do MGC, aproveitando as caratecterísticas que a região de confiança agrega ao problema, de forma que o algoritmo pare:
+\begin{enumerate}
+	\item {\it Se a norma do resíduo for suficiente pequena, então temos uma solução interna}.
+	
+	Este critério é o mesmo do algoritmo original. Para um dado $\epsilon$, suficientemente pequeno, define que, se, na $i$-ésima iteração:
+	$$
+		\| r_{i+1} \| \leq \epsilon,
+	$$
+	então a condição necessária (e suficiente, no caso do problema em questão, que é quadrático) de otimalidade de primeira ordem é satisfeita e $p_{i+1}$ será a solução para~(\ref{eq:subprob}).
+	
+	\item {\it Se a norma do passo $p$ for maior que a região de confiança, então temos uma solução na borda}.
+	
+	Esta condição é tradicional em estratégias de região de confiança, que é justamente seu intuito: definir uma vizinhança do ponto conrrente em que o modelo seja uma representação fiel da função objetivo. Desta forma, este critério define que, se, na $i$-ésima iteração:
+	$$
+		\| p_{i+1} \| > \Delta_c,
+	$$
+	então basta encontrar $\tau$ de forma que:
+	$$
+		\| p_i + \tau d_i \| = \Delta_c,
+	$$
+	e, então, $p^* = p_i + \tau d_i$ será solução de~(\ref{eq:subprob}).
+	
+	\item {\it Se houver uma direção de curvatura negativa, então temos uma solução na borda}.
+	
+	Essa é a condição que define a validade do uso do MGC com a estratégia de região de confiança. Sabe-se que, se $H_c$ não for definida positiva, então não é possível utilizar o MGC para resolver o problema~(\ref{eq:subprob}). Entretanto, com o uso de região de confiança, se $H_c$ não for definida positiva, então há uma direção de curvatura negativa para a matriz $H_c$. Ora, se o algoritmo encontrar uma direção de curvatura negativa $d_i$, então o melhor que podemos encontrar é um passo que atinja a borda da região de confiança. Portanto, se, na $i$-ésima iteração:
+	$$
+		d_i^T H_c d_i \leq 0,
+	$$
+	então basta encontrar $\tau$ de forma que:
+	$$
+		\| p_i + \tau d_i \| = \Delta_c,
+	$$
+	e, com isso, $p^* = p_i + \tau d_i$ será solução de~(\ref{eq:subprob}).
+	
+\end{enumerate}
+
+O MGC modificado, contendo os aspectos apresentados nesta seção, é definido no Algoritmo~\ref{alg:gradconjmod}.
+
+\begin{algorithm}[!Htb]
+	\caption{Método de Gradientes Conjugados Modificado}
+	\label{alg:gradconjmod}
+	Dados a hessiana $H_c \in \mathbb{R}^{n \times n}$ e o gradiente $g_c \in \mathbb{R}^n$ da função $f$ definida em~(\ref{eq:prob}), avaliados em um ponto corrente $x_c$ e uma tolerância $\epsilon \in \mathbb{R}^+$ suficientemente pequena, o problema~(\ref{eq:subprob}) pode ser resolvido pelo algoritmo:
+	\BlankLine
+	\nl Defina $p_0 = 0$, $r_0 = - g_c$, $d_0 = r_0$ e $\delta_0 = r_0^T r_0$\;
+	\nl \Para{$i = 0, \ldots, n$}{
+				\nl $h_i = H_c d_i$\;
+				\nl $\eta_i = d_i^T h_i$\;
+				\BlankLine
+				\nl \Se{$\eta_i \leq 0$}{
+					\nl Encontre $\tau$ tal que $\| p_i + \tau d_i \| = \Delta_c$\;
+					\nl \Retorna{$p^* = p_i + \tau d_i$}\;
+				}
+				
+				\nl $\displaystyle \alpha_i = \frac{\delta_0}{\eta_i}$\;
+				\nl $p_{i+1} = p_i + \alpha_i d_i$\;
+				\BlankLine
+				\nl \Se{$\| p_{i+1} \| > \Delta_c$}{
+					\nl Encontre $\tau$ tal que $\| p_i + \tau d_i \| = \Delta_c$\;
+					\nl \Retorna{$p^* = p_i + \tau d_i$}\;
+				}
+				\BlankLine
+				\nl $r_{i+1} = r_i - \alpha_i h_i$\;
+				\nl $\delta_1 = r_{i+1}^T r_{i+1}$\;
+				\BlankLine
+				\nl \lSe{$\sqrt{\delta_1} < \epsilon$}{\Retorna{$p_{i+1}$}\;}
+				\BlankLine
+				\nl $\displaystyle \beta_i = \frac{\delta_1}{\delta_0}$\;
+				\nl $d_{i+1} = r_{i+1} + \beta_i d_i$\;
+				\nl $\delta_0 = \delta_1$\;
+			}
+\end{algorithm}
+
+Para concluir as ideias, vamos seguir Nocedal e Wright~\cite[Capítulo 7]{nw} e mostrar que o $i$-ésimo termo da sequência $\{ p_k \}$ gerada pelo Algoritmo~\ref{alg:gradconjmod} possui norma estritamente maior que seu antecessor, isto é, da iteração $i-1$, para todo $i \geq 1$. Isto é consequência direta da inicialização da sequência tomando $p_0 = 0$, e sua importância está no fato de que haverá uma quantidade finita de termos, com norma estritamente crescente e superiormente cotada pelo tamanho da região de confiança. Além disso, este teorema mostra que o algoritmo irá aproveitar ao máximo o espaço definido pela região de confiança, isto é, caso não encontre nenhuma solução interna, atingirá a borda da região de confiança.
+
+\begin{teorema}\label{teo:seqcj}
+	A sequência de vetores $\{ p_k \}$ gerada pelo Algoritmo~\ref{alg:gradconjmod} é tal que:
+	\begin{equation}\label{eq:passeq}
+		0 = \| p_0 \| < \ldots < \| p_k \| < \| p_{k+1} \| < \ldots < \| p^* \| \leq \Delta_c.
+	\end{equation}
+\end{teorema}
+
+\begin{prova}
+Temos dois casos triviais, em que $p^*$ é obtido de forma que $\| p^* \| = \Delta_c$, que são quando (i) $d_k$ é uma direção de curvatura negativa ou nula ($d_k^T H_c d_k \leq 0$) ou (ii) quando o passo ultrapassa a região de confiança: $\| p_{k+1} \| > \Delta_c$. Para mostrar~(\ref{eq:passeq}) para os demais casos, precisamos provar que, para $p_{k+1}= p_k + \alpha_k d_k$, vale
+	$$
+		\| p_{k} \| < \| p_{k+1} \|, \quad \forall k \geq 0.
+	$$
+	
+De~(\ref{eq:itsub}), podemos escrever:
+\begin{equation}\label{eq:normapasso}
+	\| p_{k+1} \|^2 = (p_k + \alpha_k d_k)^T (p_k + \alpha_k d_k) = \| p_k \|^2 + 2 \alpha_k p_k^T d_k + \alpha_k^2 \| d_k \|^2
+\end{equation}
+
+De fato, $\alpha_k$ é positivo (veja as expressões~(\ref{eq:alpha2}) e~(\ref{eq:resdireq}), que geraram a expressão de $\alpha_i$ no Algoritmo~\ref{alg:gradconjmod}). Então, vamos provar por indução que $p_k^T d_k > 0$. Para $k = 1$, temos:
+\begin{eqnarray}
+	p_1^T d_1 & = & (p_0 + \alpha_0 d_0)^T (r_1 + \beta_0 d_0), \mbox{ pela Equação~(\ref{eq:itsub})} \nonumber \\
+	          & = & \alpha_0 d_0^T r_1 + \alpha_0 \beta_0 d_0^T d_0, \quad \mbox{pois $p_0 = 0$} \nonumber \\
+	          & = & \alpha_0 \beta_0 \| d_0 \|^2 > 0, \quad \mbox{pela Equação~(\ref{eq:sol3}).} \nonumber
+\end{eqnarray}
+
+Agora vamos supor que $p_k^T d_k > 0$ vale. Por conseguinte:
+\begin{eqnarray}\label{eq:np1}
+	p_{k+1}^T d_{k+1} & = & p_{k+1}^T (r_{k+1} + \beta_k d_k) \nonumber \\
+	                  & = & p_{k+1}^T r_{k+1} + \beta_k p_{k+1}^T d_k \nonumber \\
+	                  & = & p_{k+1}^T r_{k+1} + \beta_k (p_k + \alpha_k d_k)^T d_k , \mbox{ pela Equação~(\ref{eq:itsub})} \nonumber \\
+	                  & = & p_{k+1}^T r_{k+1} + \beta_k p_k^T d_k + \alpha_k \| d_k \|^2.
+\end{eqnarray}
+
+Como $\alpha_k$, $\beta_k$ (veja~(\ref{eq:betafinal})) e $p_k^T d_k$ (pela hipótese de indução) são positivos, basta ver que:
+\begin{eqnarray}
+	p_{k+1}^T r_{k+1} & = & (p_0 + \sum_{i = 0}^{k} \alpha_i d_i)^T r_{k+1}, \mbox{ tomando~(\ref{eq:itsub}) recursivamente} \nonumber \\
+	                  & = & \sum_{i = 0}^{k} \alpha_i d_i^T r_{k+1}, \mbox{ como $p_0 = 0$} \nonumber \\
+	                  & = & 0, \mbox{ pela Equação~(\ref{eq:sol3})} \nonumber
+\end{eqnarray}
+para constatar que~(\ref{eq:np1}) também é positivo. Finalmente, podemos concluir, de~(\ref{eq:normapasso}), que:
+$$
+	\| p_{k} \| < \| p_{k+1} \|, \quad \forall k \geq 0.
+$$
+
+\end{prova}
+
+O método de gradientes conjugados como um algoritmo para resolução do subproblema de região de confiança foi estabelecido. Para constatar seu comportamento na prática, vamos descrever e analisar, na próxima seção, experimentos numéricos usando as ideias do algoritmo apresentadas até aqui.
+
+\section{Experimentos numéricos}\label{sec:exp}
+
+Uma implementação do MGC modificado foi feita usando o CAS {\it Maxima}, um sistema algébrico computacional livre\footnote{Acesse \url{http://maxima.sourceforge.net/}}. Nesta seção, vamos apresentar alguns testes numéricos feitos com o algoritmo nesta implementação, considerando problemas gerais propostos por Moré, Garbow e Hillstrom em~\cite{mgh}.
+
+As funções que aparecem em~\cite{mgh} estão na forma de quadrados mínimos, isto é, temos $F(x) = (f_1(x) \ldots f_m(x))^T$, de forma que $F : \mathbb{R}^n \rightarrow \mathbb{R}^m$. Para trabalhar com problemas de minimização irrestrita, vamos tomar nossa função objetivo:
+\begin{equation}\label{eq:probmin}
+	f(x) = \frac{1}{2} \| F(x) \|^2 = \frac{1}{2} \sum_{i=1}^{m} f_i(x)^2
+\end{equation}
+e resolver
+\begin{eqnarray}
+	&            \min f(x)             & \nonumber \\
+	& \mbox{s.a. } x \in \mathbb{R}^n. & \nonumber
+\end{eqnarray}
+
+Os testes estão divididos em três partes:
+\begin{enumerate}
+	\item Na \textbf{Parte 1}, é apresentada uma visualização da convergência do algoritmo para dois problemas bidimensionais;
+	\item Na \textbf{Parte 2}, são apresentados resultados de uma série de problemas resolvidos usando o algoritmo estudado neste trabalho;
+	\item Na \textbf{Parte 3}, é feita uma comparação entre este método de minimização irrestrita e o método de Levenberg-Marquardt para quadrados mínimos propriamente dito, estudado em~\cite{lma}.
+\end{enumerate}
+
+% Comentar quais são as partes e os critérios de avaliação.
+
+\subsection{Parte 1}
+
+Nesta parte, temos por objetivo uma visualização gráfica do comportamento e convergência do algoritmo, partindo do ponto inicial e convergindo para a solução. Por isso, vamos abordar apenas dois problemas, apresentados na Tabela~\ref{tab:prob1}. 
+
+\begin{table}[!Ht]
+\centering
+	\begin{tabular}{|c|c|c|c|c|}
+		\hline
+		Função & Sigla & $n$ & $m$ & Ponto Inicial \\ \hline \hline
+		   1   &  ROS  &  2  &  2  & $(-1.2, 1)$   \\ \hline
+	     5   &  BEA  &  2  &  3  & $(1, 1)$      \\ \hline
+	\end{tabular}
+	\caption{Problemas testados na primeira parte.}
+	\label{tab:prob1}
+\end{table}
+
+Nos testes, siglas mnemônicas são usadas para facilitar a referência ao nome da função, acompanhadas de suas respectivas dimensões $m$ e $n$, bem como dos pontos iniciais utilizados e da numeração apresentada no artigo de Moré, Garbow e Hillstrom~\cite{mgh}. Os resultados da Função 1 (Rosenbrock) são ilustrados na Figura~\ref{fig:rosen}, enquanto os resultados da Função 5 (Beale) são ilustrados na Figura~\ref{fig:beale}.
+
+\begin{figure}
+	\centering
+	\includegraphics{imagens/FigRosen.pdf}
+	\caption{Comportamento da Função de Rosenbrock.}
+	\label{fig:rosen}
+\end{figure}
+
+\begin{figure}
+	\centering
+	\includegraphics{imagens/FigBeale.pdf}
+	\caption{Comportamento da Função de Beale.}
+	\label{fig:beale}
+\end{figure}
+
+\subsection{Parte 2}
+
+Nesta parte, o objetivo é rodar uma bateria de funções, extraídas de Moré, Garbow e Hillstrom~\cite{mgh}, de forma a testar a capacidade do algoritmo resolver diversos problemas de minimização irrestrita.
+
+Para uma medida de desempenho, os critérios a serem analisados nesta parte são apresentados na Tabela~\ref{tab:crit}.
+
+\begin{table}[!htb]
+	\centering
+	\begin{tabular}{|c|p{14.5cm}|}
+		\hline
+		     Sigla     & Descrição \\ \hline
+		\textbf{AF}    & Quantidade de avaliações de função que o processo consumiu. \\ \hline
+		\textbf{AG}    & Quantidade de avaliações do gradiente da função objetivo durante o processo. \\ \hline
+		\textbf{AH}    & Total de avaliações da matriz Hessiana da função objetivo demandadas para a resolução do problema. \\ \hline
+		\textbf{CP}    & Critério de parada do algoritmo. \\ \hline
+		\textbf{ITEXT} & Quantidade de iterações externas, isto é, do algoritmo principal. \\ \hline
+		\textbf{ITINT} & Quantidade de iterações internas, isto é, do MGC na resolução do subproblema. \\ \hline
+		\textbf{TE}    & Tempo de execução (em segundos). \\ \hline
+		\textbf{VF}    & Valor de $\| F(x^*) \|$, sendo $F(x)$ definida em~(\ref{eq:probmin}) e $x^*$ a solução encontrada. \\ \hline
+	\end{tabular}
+	\caption{Descrição dos critérios de avaliação adotados.}
+	\label{tab:crit}
+\end{table}
+
+Os critérios de parada são os seguintes:
+\begin{enumerate}
+	\item \textit{Excedeu a quantidade máxima de iterações}, identificado por $-1$.
+	
+	Neste critério, verifica-se se o número de iterações é maior que ou igual a uma dada tolerância \verb|ITOL|. Nos testes, \verb|ITOL| $= 300$.
+	
+	\item \textit{Otimalidade de primeira ordem: ponto estacionário da função}, identificado por 0.
+	
+	Neste critério, foi avaliada a norma relativa do gradiente da função, para uma dada tolerância \verb|GTOL|, isto é:
+	$$
+		\frac{\| g_c \|}{\| g_0 \|} \leq \verb|GTOL|.
+	$$
+	
+	Nos testes, \verb|GTOL| $= 10^{-6}$.
+	
+	\item \textit{Houve pouca variação da norma da função $F(x)$}, identificado por 1.
+	
+	Neste critério, avaliamos a variação da norma da função $F$ dada uma certa tolerância \verb|VARTOL|, isto é, para um ponto corrente $x_c$ e um novo $x_n$, avaliamos:
+	$$
+		\| F(x_c) - F(x_n) \| \leq \verb|VARTOL|.
+	$$
+	
+	Nos testes, \verb|VARTOL| $= 10^{-12}$.
+	
+\end{enumerate}
+
+As funções testadas são apresentadas na Tabela~\ref{tab:prob2}, enquanto os resultados dos testes são expostos na Tabela~\ref{tab:res2}.
+
+\begin{table}[!htb]
+	\centering
+	\begin{tabular}{|c|c|c|c|c|}
+		\hline
+		Função & Sigla & $n$ & $m$ & Ponto Inicial       \\ \hline \hline
+		1      & ROS   &  2  &  2  & ($-1.2, 1$)         \\ \hline
+		2      & FRF   &  2  &  2  & ($0.5, -2$)         \\ \hline
+		6      & JSF   &  2  &  10 & ($0.3, 0.4$)        \\ \hline
+		8      & BARD  &  3  &  15 & ($1, 1, 1$)         \\ \hline
+		10     & MEY   &  3  &  16 & ($0.02, 4000, 250$) \\ \hline
+		12     & BTD   &  3  &  10 & ($0, 10, 20$)       \\ \hline
+		13     & POWS  &  4  &  4  & ($3, -1, 0, 1$)     \\ \hline
+		15     & KOF   &  4  &  11 & ($0.25, 0.39, 0.415, 0.39$)     \\ \hline
+		16     & BDF   &  4  &  20 & ($25, 5, -5, -1$)   \\ \hline
+		17     & OS1   &  5  &  33 & ($0.5, 1.5, -1, 0.01, 0.02$)   \\ \hline
+		19     & OS2   &  11 &  65 & ($1.3, 0.65, 0.65, 0.7, 0.6, 3, 5, 7, 2, 4.5, 5.5$)   \\ \hline
+		20     & WAT   &  12 &  31 & ($0, 0, \ldots, 0$) \\ \hline
+		27     & BAL   &  10 &  10 & ($0.5, 0.5, \ldots, 0.5$) \\ \hline
+		32     & LPC   &  5  &  50 & ($1, 1, \ldots, 1$) \\ \hline
+		33     & LP1   &  5  &  50 & ($1, 1, \ldots, 1$) \\ \hline
+		34     & LP1Z  &  5  &  50 & ($1, 1, \ldots, 1$) \\ \hline
+	\end{tabular}
+	\caption{Problemas testados na segunda parte.}
+	\label{tab:prob2}
+\end{table}
+
+\begin{table}[!htb]
+	\centering
+	\begin{tabular}{|c|c|c|c|c|c|c|c|c|}
+		\hline
+		Função & CP &      VF      & ITEXT & ITINT & AF & AG & AH & TE    \\ \hline
+	    ROS  & 0  & $0.34654$ E-08 &  22   &   43  & 23 & 22 & 22 & 0.02  \\ \hline
+	    FRF  & 0  & $0.69988$ E 01 &   7   &   14  & 8  & 8  & 8  & 0     \\ \hline
+	    JSF  & 0  & $0.11151$ E 02 &   8   &   16  & 9  & 9  & 9  & 0.01  \\ \hline
+	    BARD & 0  & $0.90635$ E-01 &  14   &   42  & 15 & 14 & 14 & 0.06  \\ \hline 
+	    MEY  & 0  & $0.93779$ E 01 &  216  &  826  & 217& 199& 199& 1.67  \\ \hline
+	    BTD  & 0  & $0.92759$ E-04 &  13   &   34  & 14 & 13 & 13 & 0.11  \\ \hline
+	    POWS & 0  & $0.75374$ E-03 &  12   &   48  & 13 & 13 & 13 & 0.02  \\ \hline
+	    KOF  & 0  & $0.17535$ E-01 &  11   &   35  & 12 & 11 & 11 & 0.09  \\ \hline
+	    BDF  & 0  & $0.29295$ E 03 &  7    &   33  & 8  & 8  & 8  & 0.08  \\ \hline
+	    OS1  & 0  & $0.73924$ E-02 &  40   &  201  & 41 & 34 & 34 & 1.04  \\ \hline
+	    OS2  & 0  & $0.20034$ E 00 &  22   &  179  & 23 & 19 & 19 & 9.66  \\ \hline
+	    WAT  & 0  & $0.22180$ E-03 &  12   &  149  & 13 & 13 & 13 & 13.54 \\ \hline
+	    BAL  & 0  & $0.89312$ E-05 &  6    &   13  & 7  & 7  & 7  & 0.06  \\ \hline
+	    LPC  & 0  & $0.67082$ E 01 &  3    &    3  & 4  & 4  & 4  & 0.01  \\ \hline
+	    LP1  & 0  & $0.34826$ E 01 &  2    &    1  & 3  & 2  & 2  & 0.14  \\ \hline
+	    LP1Z & 0  & $0.36917$ E 01 &  2    &    1  & 3  & 2  & 2  & 0.01  \\ \hline
+	\end{tabular}
+	\caption{Resultados dos testes da segunda parte.}
+	\label{tab:res2}
+\end{table}
+
+Diante dos resultados, algumas observações são pertinentes:
+\begin{enumerate}
+	
+	\item O tempo de execução do algoritmo é apenas um valor simbólico, isto é, pode variar drasticamente com relação à máquina que executará o algoritmo, do sistema operacional e do uso do processador no momento da execução. Todavia, representa um bom parâmetro para ver como o algoritmo se comporta com relação às propriedades do problema. Podemos notar que os fatores mais influentes são, simultaneamente, dimensão do problema, quantidade de avaliações de função, gradiente e hessiana. Além disso, há fatores que não são tão explícitos, como a dificuldade que surge em alguns pontos do domínio para o programa realizar certos cálculos (como denominadores muito próximos de zero, gerando resulados muito grandes em valor absoluto) e erros de aproximação numérica e ponto flutuante.
+	
+	\item O número de avaliações de gradientes e hessianas são sempre iguais, pois eles são avaliados juntos. Em contrapartida, diferem do valor de avaliações de função, em certos casos. Isso acontece porque a quantidade de avaliação de função é igual à quantidade de iterações externas mais um, devido ao fato de que a função é avaliada uma vez antes de começar a execução cíclica do algoritmo, enquanto que o gradiente e a hessiana são avaliados apenas quando o novo ponto provocou descréscimo satisfatório na função objetivo. Portanto, a diferença corresponde à quantidade de vezes que o ponto obtido foi descartado, isto é, não causou descréscimo na função objetivo e não foi aceito.
+	
+	\item Também é interessante notar a relação entre a quantidade de iterações internas e externas e a dimensão do problema, isto é, o valor de $n$ do problema na Tabela~\ref{tab:prob2}. Na grande maioria dos casos, a relação é:
+	$$
+		\frac{\mbox{ITINT}}{\mbox{ITEXT}} \leq n.
+	$$
+	
+	Isto deve-se ao fato da propriedade teórica de que o algoritmo de gradientes conjugados resolve um problema de dimensão $n$ em, no máximo, $n$ iterações. A única anormalidade foi no problema \verb|MEY|. Isto deve-se a fatores não explícitos, como expostos no Item 1 acima. Todavia, a relação não é tão anômala, sendo que o valor não é muito diferente de $n$, que, no caso, vale 3.
+	
+	\item Todos os problemas pararam com um critério satisfatório, que é a condição de otimalidade de primera ordem. Todavia, esse comportamento pode variar se mudar o valor da tolerância \verb|GTOL|, tendo alguns parado por falta de progresso (\verb|CP| $= 1$). Mesmo nesses casos, nota-se que o valor do gradiente no ponto está bem próximo da tolerância, e que valores mais precisos não são alcançados por questões da precisão dos cálculos na aritmética de ponto flutuante.
+	
+\end{enumerate}
+
+\subsection{Parte 3}
+
+Nesta parte, o objetivo é comparar os resultados dos testes do algoritmo desenvolvido neste trabalho com o algoritmo de Levenberg-Marquardt para o problema de quadrados mínimos (LMA)~\cite{lma}. A comparação será feita em duas partes: uma tabular, expondo os valores finais das funções e a quantidade de avaliações e outra gráfica, na qual exibimos alguns perfis de desempenho~\cite{pp}.
+
+O quadro comparativo é apresentado na Tabela~\ref{tab:res3}, enquanto os perfis de desempenho são expostos na Figura~\ref{fig:pp}.
+
+\begin{table}[!htb]
+	\centering
+	{\footnotesize
+	\begin{tabular}{|c|c|c|c|c|c|c|c|c|c|c|}
+		\hline
+		            &         \multicolumn{5}{c|}{MGC}         &         \multicolumn{5}{c|}{LMA}          \\ \cline{2-11}
+		\up{Função} &       VF       & AF & AH & ITEXT & ITINT &       VF       & AF & AJ & ITEXT & ITINT  \\ \hline \hline
+		    ROS     & $0.34654$ E-08 & 23 & 22 &  22   &   43  &     $0.0$      & 19 & 14 &   18  &   51   \\ \hline
+		    FRF     & $0.69988$ E 01 & 8  & 8  &   7   &   14  & $0.69988$ E 01 & 41 & 28 &   40  &   95   \\ \hline
+		    JSF     & $0.11151$ E 02 & 9  & 9  &   8   &   16  & $0.11151$ E 02 & 20 & 9  &   19  &   49   \\ \hline
+		    BARD    & $0.90635$ E-01 & 15 & 14 &  14   &   42  & $0.90635$ E-01 & 6  & 6  &    5  &    5   \\ \hline
+		    MEY     & $0.93779$ E 01 & 217& 199&  216  &  826  & $0.93779$ E 01 & 144& 124&  143  &  299   \\ \hline
+		    BTD     & $0.92759$ E-04 & 14 & 13 &  13   &   34  & $0.62754$ E-10 & 13 & 12 &   12  &   34   \\ \hline
+		    POWS    & $0.75374$ E-03 & 13 & 13 &  12   &   48  & $0.19361$ E-03 & 9  & 9  &    8  &    8   \\ \hline
+		    KOF     & $0.17535$ E-01 & 12 & 11 &  11   &   35  & $0.17536$ E-01 & 13 & 11 &   12  &   43   \\ \hline
+		    BDF     & $0.29295$ E 03 & 8  & 8  &  7    &   33  & $0.29295$ E 03 & 41 & 24 &   40  &  127   \\ \hline
+		    OS1     & $0.73924$ E-02 & 41 & 34 &  40   &  201  & $0.73924$ E-02 & 19 & 16 &   18  &   35   \\ \hline
+		    OS2     & $0.20034$ E 00 & 23 & 19 &  22   &  179  & $0.20034$ E 00 & 15 & 14 &   14  &   38   \\ \hline
+		    WAT     & $0.22180$ E-03 & 13 & 13 &  12   &  149  & $0.38213$ E-04 & 5  & 5  &    4  &    6   \\ \hline
+		    BAL     & $0.89312$ E-05 & 7  & 7  &  6    &   13  & $0.19146$ E-09 & 15 & 11 &   14  &   23   \\ \hline
+		    LPC     & $0.67082$ E 01 & 4  & 4  &  3    &    3  & $0.67082$ E 01 & 5  & 5  &    4  &    7   \\ \hline
+		    LP1     & $0.34826$ E 01 & 3  & 2  &  2    &    1  & $0.34826$ E 01 & 3  & 3  &    2  &    6   \\ \hline
+		    LP1Z    & $0.36917$ E 01 & 3  & 2  &  2    &    1  & $0.36917$ E 01 & 2  & 2  &    1  &    2   \\ \hline
+	\end{tabular}
+	}
+	\caption{Quadro comparativo com os resultados da rotina LMA \cite{lma}.}
+	\label{tab:res3}
+\end{table}
+
+\begin{figure}[!Htb]
+	\centering
+	\subfigure[Avaliações de Função.]{\label{fig:af}\includegraphics[width=8cm,keepaspectratio]{imagens/perf-af.jpg}}\quad
+	\subfigure[Avaliações Matriciais.]{\label{fig:ag}\includegraphics[width=8cm,keepaspectratio]{imagens/perf-ag.jpg}}\\
+	\subfigure[Iterações Externas.]{\label{fig:itext}\includegraphics[width=8cm,keepaspectratio]{imagens/perf-itext.jpg}}\quad
+	\subfigure[Iterações Internas.]{\label{fig:itint}\includegraphics[width=8cm,keepaspectratio]{imagens/perf-itint.jpg}}%
+	\caption{Perfis de desempenho dos testes da terceira parte.}
+	\label{fig:pp}
+\end{figure}
+
+A análise de desempenho permite as seguintes considerações: 
+\begin{enumerate}
+
+	\item Consideramos avaliações de Jacobiano para LMA e Hessiana para MGC pois o algoritmo de LMA é uma estratégia de primeira ordem que trata o problema do ponto de vista matricial, aproveitando sua estrutura de quadrados mínimos, enquanto o MGC é um método de segunda ordem que encara o problema como um caso de minimização irrestrita. Estas medidas equivalem de duas maneiras: ambas se tratam de avaliações matriciais, isto é, requerem o mesmo espaço de armazenamento, e são calculadas apenas quando o novo iterando produz descrescimento suficiente na função objetivo.
+
+	\item Podemos notar que o algoritmo de LMA é mais eficiente em três casos, que são avaliações de função, de jacobiano e Hessiana e na quantidade de iterações internas. O algoritmo de MGC é mais eficiente apenas na quantidade de iterações internas dispendidas. 
+
+	\item Do ponto de vista de robustez, o LMA se sobressai na quantidade de iterações internas, enquanto o algoritmo de MGC possui robustez acentuada no que diz respeito às avaliações, tanto de função quanto de Hessiana, e nas iterações externas. Isto se deve ao fato de que o algoritmo de LMA trabalha mais a cada iteração interna, isto é, aproveita melhor a estrutura do problema, resolvendo o problema em menos iterações, entretanto consumindo muito mais avaliações.
+	
+\end{enumerate}
+
+\section{Conclusões}
+
+O algoritmo de gradientes conjugados é um método de direções conjugadas proposto originalmente para resolução de sistemas lineares compatíveis e determinados com matrizes de coeficientes positiva definida. Entretanto, aliado à estratégia de regiões de confiança, tornou-se uma ferramenta interessante para a resolução de problemas gerais de minimização irrestrita.
+
+Os experimentos numéricos realizados revelaram um comportamento satisfatório do algoritmo de MGC proposto, que, implementado em uma sistema álgebrico computacional livre, o Maxima, foi capaz de chegar à solução dos problemas testados (cf. valores ótimos apresentados em~\cite{mgh}). Além disso, uma comparação ao LMA foi feita, com o objetivo de observar o desempenho das duas abordagens distintas para a resolução do problema de quadrados mínimos: enquanto o algoritmo LMA explora as peculiaridades e tira proveito da estrutura do problema, o MGC resolve um problema geral de minimização irrestrita. Diante disto, percebemos que o MGC é um método competitivo que apresenta robustez na maior parte dos quesitos analisados.
+
+\newpage
+
+% \clearpage
+\ifpdf\phantomsection\fi
+\addcontentsline{toc}{section}{Referências}
+
+\begin{thebibliography}{99}
+
+\bibitem{livrocgt} A.R. Conn, N.I.M. Gould \& P.L. Toint, {\em Trust-Region methods}, MPS-SIAM Series on Optimization, SIAM, Philadelphia, 2000.
+
+\bibitem{pp} E.D. Dolan \& J.J. Moré, ``Benchmarking optimization software with performance profiles'', {\em Mathematical Programming}. Springer Berlin / Heidelberg, 2002. Vol.~91, pp.~201-213, jan.~2002.
+
+\bibitem{lma} J.L.C. Gardenghi \& S.A. Santos, ``Sistemas não lineares via região de confiança: o algoritmo de Levenberg-Marquardt''. Disponível em: \url{http://www.ime.unicamp.br/rel_pesq/2011/pdf/rp03-11.pdf}. Último acesso em 28 de abr. 2012.
+
+\bibitem{hsconj} M.R. Hestenes \& E. Stiefel. ``Methods of Conjugate Gradients for Solving Linear Systems''. {\em Journal of Research of the National Bureau of Standards}, v.~49, n.~6, pp.~409-436, dez.~1952.
+
+\bibitem{solodov} A. Izmailov \& M. Solodov. {\em Otimização, Volume 2}: Métodos Computacionais. Rio de Janeiro: IMPA, 2007. 448~p.
+
+\bibitem{kelley} C.T. Kelley. {\em Iterative Methods for Linear and Nonlinear Equations}. Philadelphia: SIAM, 1995. 166~p.
+
+\bibitem{mgh} J.J. Moré, B.S. Garbow \& K.E. Hillstrom, ``Testing unconstrained optimization software'', {\em ACM Transactions on Mathematical Software}, Volume 7, pp. 17-41, 1981.
+
+\bibitem{nw} J. Nocedal \& S.J. Wright, {\em Numerical Optimization}. 2.~ed. New York: Springer, 2006. 664~p.
+
+\bibitem{painless} J.R. Shewchuk. {\em An Introduction to the Conjugate Gradient Method Without the Agonizing Pain}. Edition 1$\frac{1}{4}$. 1994. School of Computer Science. Carnegie Mellon University, Pittsburgh, PA, 58p. Disponível em \url{http://www.cs.cmu.edu/~quake-papers/painless-conjugate-gradient.pdf}. Último acesso em 28 de abr. 2012.
+
+\bibitem{steihaug} T. Steihaug. ``The conjugate gradient method and trust region in large scale optimization''. {\em SIAM Journal on Numerical Analysis}, v.~20(3), pp.~626-637, 1983.
+
+\bibitem{gauss} J. Tenne \& S.W. Armfield. ``A note on the relation of Gaussian elimination to the conjugate directions algorithm'', em: R. May \& A. J. Roberts, {\em Proc. of 12th Computational Techniques and Applications Conference CTAC-2004}, Volume 46, pp.~C971-C986, 2005.
+
+\end{thebibliography}
+
+\end{document}

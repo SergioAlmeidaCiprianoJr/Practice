@@ -1,0 +1,34 @@
+Source: python3-anytree
+Priority: optional
+Maintainer: Debian Python Modules Team <python-modules-team@lists.alioth.debian.org>
+Uploaders: Sérgio Cipriano <sergiosacj@hotmail.com.br>
+Build-Depends: debhelper (>= 11),
+	       python3-six (>=1.9.0),
+	       dh-python,
+               python3-all,
+               python3-setuptools,
+	       python3-setuptools-scm,
+	       python3-six (>= 1),
+	       check-manifest,
+	       python3-coverage
+Standards-Version: 4.1.3
+Section: python
+Homepage: https://github.com/c0fec0de/anytree
+#Vcs-Browser: https://salsa.debian.org/debian/python3-anytree
+#Vcs-Git: https://salsa.debian.org/debian/python3-anytree.git
+Testsuite: autopkgtest-pkg-python
+
+Package: python3-anytree
+Architecture: all
+Depends: ${shlibs:Depends}, ${misc:Depends}
+Description: Tree data library
+ ewer versions of gtk-doc-tools require anytree for gtkdoc-mkhtml2, an
+ experimental replacement for gtkdoc-mkhtml and gtkdoc-fixxref which speeds
+ up processing by transforming Docbook into HTML in Python code instead of
+ using XSLT.
+ For now I've replaced its use in gtk-doc-tools with a simple
+ reimplementation (it's a tree data structure, it isn't rocket science),
+ but in the long term either someone should package anytree, or someone
+ needs to ask the upstream maintainer of gtk-doc to use a different tree
+ implementation instead of depending on anytree (in which case this bug
+ can be closed as wontfix).

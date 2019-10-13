@@ -1,0 +1,6 @@
+\babel@toc {english}{}
+\contentsline {section}{\numberline {1}Ferramentas utilizadas}{2}{section.1}% 
+\contentsline {section}{\numberline {2}Lista de registradores utilizados}{2}{section.2}% 
+\contentsline {section}{\numberline {3}Lista de c\IeC {\'o}digos de chamadas utilizados}{2}{section.3}% 
+\contentsline {section}{\numberline {4}Passo a passo da l\IeC {\'o}gica}{3}{section.4}% 
+\contentsline {section}{\numberline {5}Passo a passo da execu\IeC {\c c}\IeC {\~a}o}{4}{section.5}% 

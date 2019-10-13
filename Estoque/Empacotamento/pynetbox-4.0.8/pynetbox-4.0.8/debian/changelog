@@ -1,0 +1,5 @@
+pynetbox (4.0.8-1) unstable; urgency=medium
+
+  * Initial release (Closes: #nnnn)  <nnnn is the bug number of your ITP>
+
+ -- Sérgio Cipriano <sergiosacj@hotmail.com.br>  Mon, 30 Sep 2019 13:57:34 -0300
