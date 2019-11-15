@@ -1,0 +1,17 @@
+d - jump to next word 
+b - jump to next word 
+v - jump to previous word
+G - jump to last line
+A - insert mode at end line
+0 - start of the line
+$ - end od the line
+:set number - display line number
+:syntax on - high ligth
+:set tabstop=2 - tab size
+o - new line + insert mode
+:set autoindent
+:e $HOME/.vimrc - creating template
+vim ~/.vimrc
+V - select all line
+y - copy
+P - paste

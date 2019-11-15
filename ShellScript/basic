@@ -1,0 +1,48 @@
+#!/bin/bash
+
+# making executable: chmod 755 file
+
+myName="Sergio"
+
+declare -r NUM1=5
+
+num2=4
+
+num3=$((NUM1+num2))
+num4=$((NUM1-num2))
+num5=$((NUM1*num2))
+num6=$((NUM1/num2))
+
+echo "5 + 4 = $num3"
+echo "5 - 4 = $num4"
+echo "5 * 4 = $num5"
+echo "5 / 4 = $num6"
+
+echo "5 ** 2 = $((5**2))"
+echo "5 % 4  = $((5%4))"
+
+# += -= %= /= *=
+
+rand=5
+let rand+=4
+echo "rand = 5 + 4 = $rand"
+
+echo "rand++ = $(( rand++ ))" # primeiro foi printado depois incrementado
+echo "++rand = $(( ++rand ))" # incrementado e logo depois printado
+echo "rand-- = $(( rand-- ))" # ...
+echo "--rand = $(( --rand ))" # ...
+
+num7=1.2
+num8=3.4
+num9=$(python -c "print $num7+$num8")
+echo "using python -> 1.2 + 3.4 = $num9"
+
+cat<< END
+This text
+prints on
+many lines
+END
+
+cat<< WorkWithNumbers
+variable num7 = $num7
+WorkWithNumbers
