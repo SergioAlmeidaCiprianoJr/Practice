@@ -19,7 +19,7 @@ Config=(
 )
 touch ~/.vimrc
 for config in ${Config[*]}; do
-	echo "config" >> ~/.vimrc
+	echo $config >> ~/.vimrc
 done
 
 ## Movendo pastas do repo
@@ -46,7 +46,7 @@ FAV=(
 )
 touch ListaFavoChrome
 for favorito in ${FAV[*]}; do
-	echo "favorito" >> ListaFavoChrome
+	echo $favorito >> ListaFavoChrome
 done
 
 ## Criando Lista de Extensões do Chrome
@@ -57,7 +57,7 @@ EXT=(
 )
 touch ListaExtChrome
 for extensao in ${EXT[*]}; do
-	echo "extensao" >> ListaExtChrome
+	echo $extensao >> ListaExtChrome
 done
 
 ## Git
