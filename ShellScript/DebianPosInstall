@@ -15,7 +15,7 @@ sudo apt install vim
 ## Movendo pastas do repo
 mkdir Programas
 fightcade="/DebianPosInstall/figthcade "
-if [-e fightcade]; then
+if [ ! -d fightcade ]; then
 	mv fightcade Programas
 fi
 
