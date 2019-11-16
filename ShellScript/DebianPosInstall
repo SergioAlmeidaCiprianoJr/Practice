@@ -11,6 +11,16 @@ sudo apt install julia
 
 ## Vim
 sudo apt install vim 
+Config=(
+	set number
+	syntax on
+	set tabstop=2
+	set autoindent
+)
+touch ~/.vimrc
+for config in ${Config[*]}; do
+	echo "config" >> ~/.vimrc
+done
 
 ## Movendo pastas do repo
 mkdir Programas
