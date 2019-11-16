@@ -34,3 +34,15 @@ else
 fi
 
 ##########################################
+
+IFS="$OIFS"
+
+string="The dog is hungry"
+
+echo "${string//dog/cat}"
+
+name=Derek
+
+echo "I am ${name:=Sergio}"
+# echo "I am ${name:-Sergio}" dont change name
+
