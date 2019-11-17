@@ -1,0 +1,82 @@
+.text
+
+	.globl main
+
+	main:
+
+	la $s1, char
+	move $a0, $s1
+	jal le_string
+	lb $t5,($s1)
+
+    la $s0, string
+	move $a0, $s0
+    jal le_string
+
+	addi $t3, $zero, 32 # ' '
+	add $t1, $zero, $zero # booleano
+	add $t4, $zero, $zero # contador
+	addi $t2, $zero, 1 # quantidade de palavras
+
+    loop:
+        lb $t0,($s0)
+		beq $t0, $zero, imprime_porcentagem
+		addi $s0, $s0, 1
+		beq $t0, $t3, nova_palavra
+		beq $t1, $zero, compara_char
+		j loop
+		compara_char:
+			beq $t0, $t5, vira_um
+			j loop
+
+	le_string:
+		li $v0, 8
+        li $a1, 400
+		syscall
+		jr $ra	
+
+	nova_palavra:
+		add $t1, $zero, $zero
+		addi $t2, $t2, 1
+		j loop
+	
+	vira_um:
+		addi $t1, $zero, 1
+		addi $t4, $t4, 1
+		j loop	
+
+	imprime_porcentagem:
+		div		$t4, $t2
+		mflo	$a0 
+		
+		addi $t2, $zero, 100
+		mult	$a0, $t2
+		mflo	$a0
+		
+		li $v0, 1
+		syscall	
+
+		la $a0, endl
+		li $v0, 4
+		syscall
+
+	fim:
+		li $v0, 10
+		syscall
+
+.data
+	endl: .asciiz "\n"
+    string:  .space 400
+	char:  .space 400
+
+# li:
+# 1 - imprime int (a0 = int a ser impresso)
+# 2 - imprime float (f12 = float a ser impresso)
+# 3 - imprime double (f12 = double a ser impresso)
+# 4 - imprime string (a0 = endereço de memória da string) 
+# 5 - lê int (retorna em v0)
+# 6 - lê float (retorna em v0)
+# 7 - lê double (retorna em v0)
+# 8 - lê string (a0 = endereço de memória da string,
+               # a1 = tamanho da string)
+# 10 - exit (endereço em v0)

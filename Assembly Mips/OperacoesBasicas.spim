@@ -9,9 +9,9 @@
         #lendo e armazenando em temporários
 	jal le_inteiro 
 	la  $t0, 0($v0) #a
-        jal le_inteiro 
+	jal le_inteiro 
 	la  $t1, 0($v0) #b
-        jal le_inteiro 
+	jal le_inteiro 
 	la  $t2, 0($v0)	#c
         #...................................
 

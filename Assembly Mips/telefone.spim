@@ -1,0 +1,136 @@
+.text
+
+	.globl main
+
+	main:
+
+    la $s0, string
+    jal le_string
+
+    loop:
+        lb $t0,($s0)
+		beq $t0, $zero, fim
+        jal verifica
+		addi $s0, $s0, 1
+		j loop
+
+	le_string:
+        move $a0, $s0
+		li $v0, 8
+        li $a1, 64
+		syscall
+		jr $ra		
+
+	verifica:
+		# dois
+		addi $t1, $zero, 65
+		beq $t0, $t1, dois
+		addi $t1, $zero, 66
+		beq $t0, $t1, dois
+		addi $t1, $zero, 67
+		beq $t0, $t1, dois
+		# tres
+		addi $t1, $zero, 68
+		beq $t0, $t1, tres
+		addi $t1, $zero, 69
+		beq $t0, $t1, tres
+		addi $t1, $zero, 70
+		beq $t0, $t1, tres
+		# quatro
+		addi $t1, $zero, 71
+		beq $t0, $t1, quatro
+		addi $t1, $zero, 72
+		beq $t0, $t1, quatro
+		addi $t1, $zero, 73
+		beq $t0, $t1, quatro
+		# cinco
+		addi $t1, $zero, 74
+		beq $t0, $t1, cinco
+		addi $t1, $zero, 75
+		beq $t0, $t1, cinco
+		addi $t1, $zero, 76
+		beq $t0, $t1, cinco
+		# seis
+		addi $t1, $zero, 77
+		beq $t0, $t1, seis
+		addi $t1, $zero, 78
+		beq $t0, $t1, seis
+		addi $t1, $zero, 79
+		beq $t0, $t1, seis
+		# sete
+		addi $t1, $zero, 80
+		beq $t0, $t1, sete
+		addi $t1, $zero, 81
+		beq $t0, $t1, sete
+		addi $t1, $zero, 82
+		beq $t0, $t1, sete
+		addi $t1, $zero, 83
+		beq $t0, $t1, sete
+		# oito
+		addi $t1, $zero, 84
+		beq $t0, $t1, oito
+		addi $t1, $zero, 85
+		beq $t0, $t1, oito
+		addi $t1, $zero, 86
+		beq $t0, $t1, oito
+		# nove
+		addi $t1, $zero, 87
+		beq $t0, $t1, nove
+		addi $t1, $zero, 88
+		beq $t0, $t1, nove
+		addi $t1, $zero, 89
+		beq $t0, $t1, nove
+		addi $t1, $zero, 90
+		beq $t0, $t1, nove
+		# else
+		j imprime_char
+
+	dois:
+		addi $t0, $zero, 50
+		j imprime_char
+	tres:
+		addi $t0, $zero, 51
+		j imprime_char
+	quatro:
+		addi $t0, $zero, 52
+		j imprime_char
+	cinco:
+		addi $t0, $zero, 53
+		j imprime_char
+	seis:
+		addi $t0, $zero, 54
+		j imprime_char
+	sete:
+		addi $t0, $zero, 55
+		j imprime_char
+	oito:
+		addi $t0, $zero, 56
+		j imprime_char
+	nove:
+		addi $t0, $zero, 57
+		j imprime_char
+
+    imprime_char:
+        add $a0, $t0, $zero
+		li $v0, 11
+		syscall	
+		jr $ra
+
+	fim:
+		li $v0, 10
+		syscall
+
+.data
+    string:  .space 64
+
+# li:
+# 1 - imprime int (a0 = int a ser impresso)
+# 2 - imprime float (f12 = float a ser impresso)
+# 3 - imprime double (f12 = double a ser impresso)
+# 4 - imprime string (a0 = endereço de memória da string) 
+# 5 - lê int (retorna em v0)
+# 6 - lê float (retorna em v0)
+# 7 - lê double (retorna em v0)
+# 8 - lê string (a0 = endereço de memória da string,
+               # a1 = tamanho da string)
+# 10 - exit (endereço em v0)
