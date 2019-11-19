@@ -6,12 +6,12 @@
 
 	la $s1, char
 	move $a0, $s1
-	jal le_string
+	jal le_string1
 	lb $t5,($s1)
 
     la $s0, string
 	move $a0, $s0
-    jal le_string
+    jal le_string2
 
 	addi $t3, $zero, 32 # ' '
 	add $t1, $zero, $zero # booleano
@@ -22,6 +22,8 @@
         lb $t0,($s0)
 		beq $t0, $zero, imprime_porcentagem
 		addi $s0, $s0, 1
+		lb $t7,($s0)
+		beq $t7, $zero, imprime_porcentagem
 		beq $t0, $t3, nova_palavra
 		beq $t1, $zero, compara_char
 		j loop
@@ -29,31 +31,42 @@
 			beq $t0, $t5, vira_um
 			j loop
 
-	le_string:
+	le_string1:
 		li $v0, 8
-        li $a1, 400
+        li $a1, 10
+		syscall
+		jr $ra	
+
+	le_string2:
+		li $v0, 8
+        li $a1, 10000
 		syscall
 		jr $ra	
 
 	nova_palavra:
+		addi $s2, $s0, 1
+		lb $t7,($s2)
+		beq $t7, $zero, imprime_porcentagem
 		add $t1, $zero, $zero
 		addi $t2, $t2, 1
 		j loop
 	
 	vira_um:
 		addi $t1, $zero, 1
-		addi $t4, $t4, 1
+		addi $t4, $t4, 100
 		j loop	
 
 	imprime_porcentagem:
-		div		$t4, $t2
-		mflo	$a0 
 		
-		addi $t2, $zero, 100
-		mult	$a0, $t2
-		mflo	$a0
-		
-		li $v0, 1
+		mtc1 $t4, $f1
+		cvt.s.w $f1, $f1
+
+		mtc1 $t2, $f2
+		cvt.s.w $f2, $f2
+
+		div.s $f12, $f1, $f2
+
+		li $v0, 2
 		syscall	
 
 		la $a0, endl
@@ -66,8 +79,8 @@
 
 .data
 	endl: .asciiz "\n"
-    string:  .space 400
-	char:  .space 400
+    string:  .space 10000
+	char:  .space 10
 
 # li:
 # 1 - imprime int (a0 = int a ser impresso)

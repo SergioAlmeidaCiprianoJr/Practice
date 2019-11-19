@@ -1,0 +1,9 @@
+set number
+syntax on
+set tabstop=4
+set autoindent
+if has("autocmd")
+  augroup templates
+    autocmd BufNewFile *.cpp 0r ~/.vim/templates/skeleton.cpp
+  augroup END
+endif
