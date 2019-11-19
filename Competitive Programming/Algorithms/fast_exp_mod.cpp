@@ -8,6 +8,17 @@ using ll = long long;
  
 const ll p = 31, q = 1000000007;
 
+ll fast_exp_mod(ll a, ll n);
+
+int main(){
+
+	int a, n;
+	cin >> a >> n;
+	cout << fast_exp_mod(a, n) << endl;
+	
+	return 0;
+}
+
 ll fast_exp_mod(ll a, ll n)
 {
 	ll res = 1, base = a;
@@ -22,10 +33,5 @@ ll fast_exp_mod(ll a, ll n)
 	}
 
 	return res;
-}
-
-int main(){
-	
-	return 0;
 }
 
