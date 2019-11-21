@@ -11,7 +11,7 @@ $ - end od the line
 o - new line + insert mode
 :set autoindent
 :e $HOME/.vimrc - creating template
-vim ~/.vimrc
+vim ~/.vimrc - create preferences
 V - select all line
 y - copy
 P - paste
