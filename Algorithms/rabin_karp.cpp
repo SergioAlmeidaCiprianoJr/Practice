@@ -13,7 +13,9 @@ int rabin_karp(const string& S, const string& P);
 int main(){
 	
 	string S, P;
-	cin >> S >> P;
+	int z;
+	cin >> z >> S;
+	P = "TEP";
 	cout << rabin_karp(S, P) << endl;
 	return 0;
 }

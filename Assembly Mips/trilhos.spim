@@ -1,0 +1,148 @@
+.text
+
+        .globl main
+
+        main:
+		
+		#--------------- N ----------------#
+		jal le_inteiro
+		add  $s0, $v0, $zero
+		#--------------- N ----------------#
+
+		#--------------- declaration ----------------#
+		add  $s1, $zero, $zero  # deltaS
+		add  $s2, $zero, $zero  # deltaD
+		addi $s3, $zero, 32760  # deltaM
+		addi $s4, $zero, 1      # melhorTrilha
+		addi $s7, $zero, 1      # i
+	    
+		# Um
+        addi $t1, $zero, 1
+        # fake zero
+        addi $t2, $zero, 48
+        # ' '
+        addi $t3, $zero, 32
+        # 10
+        addi $t6, $zero, 10
+		# boolean
+		add $t9, $zero, $zero
+		#--------------- declaration ----------------#
+
+		#---------------    while    ----------------#
+		while:
+
+		add  $s1, $zero, $zero  # deltaS
+		add  $s2, $zero, $zero  # deltaD
+		add $t9, $zero, $zero   # boolean
+
+		add $t5, $zero, $zero
+        jal le_chars
+        add $t0, $t5, $zero # $t0 = elementos
+		
+		addi $t0, $t0, -1 # retirando o ultimo
+        j loop
+
+        continue:
+
+        jal le_inteiro 
+        add $t5, $v0, $zero
+
+		jal COMPARACAO_V1_V2	
+
+		jal IF_DELTAD
+		jal IF_DELTAM
+
+		addi $s0, $s0, -1
+		addi $s7, $s7,  1
+		bne  $s0, $zero, while
+		#---------------    while    ----------------#
+
+		#---------------  resposta   ----------------#
+		resposta:
+			add $a0, $s4, $zero
+			li $v0, 1
+			syscall
+
+        enter:
+            la $a0, newline
+            li $v0, 4
+            syscall
+
+        fim:
+  	        li $v0, 10
+    	    syscall
+		#---------------  resposta   ----------------#
+
+		IF_DELTAD: 
+			bgt $s1, $s2, maior      # deltaS > deltaD
+			jr $ra
+			maior:
+				add $s1, $zero, $s2  # deltaS = deltaD
+				jr $ra
+
+		IF_DELTAM:
+			blt $s1, $s3, menor      # deltaS < deltaM
+			jr $ra
+			menor:
+				add $s3, $zero, $s1  # deltaM = deltaS
+				add $s4, $zero, $s7  # melhorTrilha = i
+				jr $ra
+
+        le_inteiro:
+            li $v0, 5	
+            syscall
+            jr $ra	
+        
+        loop:
+        	beq $t0, $zero, saida
+            addi $t0, $t0, -1
+            add $t5, $zero, $zero
+            jal le_chars
+			j bool
+			nothing:
+			jal COMPARACAO_V1_V2
+			add $s5, $zero, $s6
+            j loop
+
+		bool:
+			beq $t9, $t1, nothing
+			add $s5, $zero, $t5
+			add $t9, $zero, $t1
+			j loop
+
+        le_chars:
+            li $v0, 12	
+			syscall
+			beq $v0, $t3, segue
+			#convertendo char para int
+			sub $t4, $v0, $t2
+			#somando
+			mult	$t5, $t6
+			mflo	$t5
+			add $t5, $t4, $t5
+
+            j le_chars
+		segue:
+			jr $ra
+			
+        saida:
+			j continue
+		
+		COMPARACAO_V1_V2:
+			add $s6, $zero, $t5
+			bgt $s6, $s5, return
+
+			sub $t1, $s5, $s6  			  # t1 = v1 - v2
+			add $s2, $s2, $t1             # deltaD += t1
+			addi $t1, $zero, 1
+			jr $ra
+
+			return:
+				sub $t1, $s6, $s5         # t1 = v2 - v1
+				add $s1, $s1, $t1         # deltaS += t1
+				addi $t1, $zero, 1
+				jr $ra
+
+.data
+        newline: 
+             .asciiz "\n"
